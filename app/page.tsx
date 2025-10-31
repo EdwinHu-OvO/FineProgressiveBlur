@@ -187,7 +187,7 @@ export default function Home() {
             ) : (
               <div className="w-full max-w-3xl">
                 <Image
-                  src="/sample.jpg"
+                  src="https://s2.loli.net/2025/10/31/zyHARNv3kBbqfJ2.jpg"
                   alt="Sample"
                   width={960}
                   height={640}
