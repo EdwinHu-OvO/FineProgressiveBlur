@@ -162,7 +162,6 @@ export default function FineProgressiveBlur({
             ))}
           </div>
         )}
-        {children}
         {flagbottom && (
           <div
             className="absolute bottom-0 left-0 w-full flex flex-col-reverse z-99"
@@ -183,6 +182,7 @@ export default function FineProgressiveBlur({
             ))}
           </div>
         )}
+        {children}
       </div>
     </div>
   );
