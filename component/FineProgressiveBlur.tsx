@@ -142,12 +142,12 @@ export default function FineProgressiveBlur({
   return (
     <div className="relative h-fit w-fit" aria-hidden>
       <div className="w-full h-full">
-        <div
-          className="absolute top-0 left-0 w-full z-99"
-          style={{ height: `${height}px` }}
-        >
-          {flagtop &&
-            toplayers.map((layer) => (
+        {flagtop && (
+          <div
+            className="absolute top-0 left-0 w-full z-99"
+            style={{ height: `${height}px` }}
+          >
+            {toplayers.map((layer) => (
               <div
                 key={layer.id}
                 className="absolute left-0 top-0 w-full"
@@ -160,14 +160,15 @@ export default function FineProgressiveBlur({
                 }}
               ></div>
             ))}
-        </div>
+          </div>
+        )}
         {children}
-        <div
-          className="absolute bottom-0 left-0 w-full flex flex-col-reverse z-99"
-          style={{ height: `${height}px` }}
-        >
-          {flagbottom &&
-            bottomlayers.map((layer) => (
+        {flagbottom && (
+          <div
+            className="absolute bottom-0 left-0 w-full flex flex-col-reverse z-99"
+            style={{ height: `${height}px` }}
+          >
+            {bottomlayers.map((layer) => (
               <div
                 key={layer.id}
                 className="absolute left-0 bottom-0 w-full"
@@ -180,7 +181,8 @@ export default function FineProgressiveBlur({
                 }}
               ></div>
             ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
