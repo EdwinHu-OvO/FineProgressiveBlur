@@ -144,7 +144,7 @@ export default function FineProgressiveBlur({
       <div className="w-full h-full">
         {flagtop && (
           <div
-            className="absolute top-0 left-0 w-full z-99"
+            className="absolute top-0 left-0 w-full z-99 pointer-events-none"
             style={{ height: `${height}px` }}
           >
             {toplayers.map((layer) => (
@@ -164,7 +164,7 @@ export default function FineProgressiveBlur({
         )}
         {flagbottom && (
           <div
-            className="absolute bottom-0 left-0 w-full flex flex-col-reverse z-99"
+            className="absolute bottom-0 left-0 w-full flex flex-col-reverse z-99 pointer-events-none"
             style={{ height: `${height}px` }}
           >
             {bottomlayers.map((layer) => (
