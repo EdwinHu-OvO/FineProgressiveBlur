@@ -60,4 +60,14 @@ describe("accepted texture content", () => {
     expect(texture.framebuffer).toBe(accepted);
     texture.dispose();
   });
+
+  it("can skip the comparison when the caller already has a content revision", async () => {
+    const texture = new ContentTexture({} as WebGL2RenderingContext, {
+      compare: false,
+    });
+    expect((await texture.update(canvas(), signal())).changed).toBe(true);
+    expect((await texture.update(canvas(), signal())).changed).toBe(true);
+    expect(comparison.differs).not.toHaveBeenCalled();
+    texture.dispose();
+  });
 });

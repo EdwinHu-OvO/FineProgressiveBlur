@@ -1,8 +1,11 @@
-import { attachContentEvents } from "../capture/content-events";
+import {
+  attachContentEvents,
+  type ContentChange,
+} from "../capture/content-events";
 import { attachScrollEvents } from "../capture/scroll-events";
 
 interface SurfaceEvents {
-  content(): void;
+  content(change: ContentChange): void;
   scroll(nested: boolean): void;
   scrollEnd(): void;
   resize(): void;

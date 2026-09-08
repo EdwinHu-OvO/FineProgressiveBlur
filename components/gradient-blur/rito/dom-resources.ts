@@ -1,3 +1,4 @@
+import { serializeSvg } from "./svg-resource";
 import type { Rect } from "./vendor/frame-types";
 
 type Drawable = ImageBitmap | HTMLImageElement;
@@ -6,7 +7,10 @@ type Drawable = ImageBitmap | HTMLImageElement;
 export class DomResources {
   private readonly cached = new Map<string, Promise<Drawable>>();
   private generation = 0;
-  private epoch = 0;
+  private canvasEpoch = 0;
+  private readonly canvasIds = new WeakMap<HTMLCanvasElement, number>();
+  private readonly imageVersions = new Map<string, number>();
+  fontVersion = 0;
   private disposed = false;
 
   async image(element: HTMLImageElement): Promise<[string, Drawable]> {
@@ -14,13 +18,16 @@ export class DomResources {
     if (!element.naturalWidth)
       throw new Error("Rito: image could not be decoded");
     return [
-      `image:${this.epoch}:${element.currentSrc || element.src}:${element.naturalWidth}:${element.naturalHeight}`,
+      `image:${this.imageVersions.get(element.currentSrc || element.src) ?? 0}:${element.currentSrc || element.src}:${element.naturalWidth}:${element.naturalHeight}`,
       element,
     ];
   }
 
   async canvas(element: HTMLCanvasElement): Promise<[string, Drawable]> {
-    const key = `canvas:${++this.generation}`;
+    let id = this.canvasIds.get(element);
+    if (id === undefined)
+      this.canvasIds.set(element, (id = ++this.generation));
+    const key = `canvas:${id}:${this.canvasEpoch}:${element.width}:${element.height}`;
     return [key, await this.load(key, () => createImageBitmap(element))];
   }
 
@@ -29,85 +36,8 @@ export class DomResources {
     bounds: Rect,
     pixelRatio: number,
   ): Promise<[string, Drawable]> {
-    const clone = element.cloneNode(true) as SVGSVGElement;
-    const originals = [element, ...element.querySelectorAll("*")];
-    const copies = [clone, ...clone.querySelectorAll("*")];
-    const properties = [
-      "fill",
-      "fill-opacity",
-      "fill-rule",
-      "stroke",
-      "stroke-width",
-      "stroke-opacity",
-      "stroke-linecap",
-      "stroke-linejoin",
-      "stroke-dasharray",
-      "stroke-dashoffset",
-      "opacity",
-      "font",
-      "color",
-      "visibility",
-      "paint-order",
-      "transform",
-      "transform-origin",
-      "transform-box",
-      "clip-path",
-      "mask",
-      "filter",
-    ];
-    originals.forEach((original, index) => {
-      const style = getComputedStyle(original);
-      const target = copies[index] as SVGElement;
-      for (const property of properties) {
-        const value = style
-          .getPropertyValue(property)
-          .replace(
-            /url\(["']?([^)]*?)["']?\)/g,
-            (_match, reference: string) => {
-              const id = reference.slice(reference.lastIndexOf("#") + 1);
-              if (
-                !reference.includes("#") ||
-                !element.querySelector(`#${CSS.escape(id)}`)
-              )
-                throw new Error(
-                  "Rito: SVG paint references must be self-contained",
-                );
-              return `url("#${id}")`;
-            },
-          );
-        target.style.setProperty(
-          property,
-          index === 0 && property === "opacity" ? "1" : value,
-        );
-      }
-      if (original.localName === "foreignObject")
-        throw new Error("Rito: SVG foreignObject is not supported");
-      if (
-        ["animate", "animateTransform", "animateMotion", "set"].includes(
-          original.localName,
-        )
-      )
-        throw new Error("Rito: animated SVG is not supported");
-      if (original.localName === "use") {
-        const href =
-          original.getAttribute("href") ?? original.getAttribute("xlink:href");
-        if (
-          href &&
-          (!href.startsWith("#") ||
-            !element.querySelector(`#${CSS.escape(href.slice(1))}`))
-        )
-          throw new Error("Rito: external SVG references are not supported");
-      }
-    });
-    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    if (!element.hasAttribute("viewBox"))
-      clone.setAttribute("viewBox", `0 0 ${bounds.width} ${bounds.height}`);
-    clone.setAttribute("width", String(bounds.width * pixelRatio));
-    clone.setAttribute("height", String(bounds.height * pixelRatio));
-    clone.style.width = `${bounds.width * pixelRatio}px`;
-    clone.style.height = `${bounds.height * pixelRatio}px`;
-    const markup = new XMLSerializer().serializeToString(clone);
-    const key = `svg:${this.epoch}:${markup}`;
+    const markup = serializeSvg(element, bounds, pixelRatio);
+    const key = `svg:${this.fontVersion}:${markup}`;
     const drawable = await this.load(key, async () => {
       const url = URL.createObjectURL(
         new Blob([markup], { type: "image/svg+xml" }),
@@ -125,7 +55,7 @@ export class DomResources {
   }
 
   async background(url: string): Promise<[string, Drawable]> {
-    const key = `background:${this.epoch}:${url}`;
+    const key = `background:${this.imageVersions.get(url) ?? 0}:${url}`;
     return [
       key,
       await this.load(key, async () => {
@@ -152,7 +82,17 @@ export class DomResources {
   }
 
   invalidate(): void {
-    this.epoch += 1;
+    // Canvas drawing has no DOM mutation signal; refresh explicitly nominates it.
+    this.canvasEpoch += 1;
+  }
+
+  imageLoaded(element: HTMLImageElement): void {
+    const url = element.currentSrc || element.src;
+    this.imageVersions.set(url, (this.imageVersions.get(url) ?? 0) + 1);
+  }
+
+  fontsChanged(): void {
+    this.fontVersion += 1;
   }
 
   dispose(): void {

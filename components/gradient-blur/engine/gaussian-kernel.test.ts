@@ -16,7 +16,7 @@ describe("CSS Gaussian bilinear kernel", () => {
   });
 
   it("keeps Gaussian variance after reconstructing the bilinear pairs", () => {
-    for (const sigma of [1, 2, 3, 4]) {
+    for (const sigma of [1, 2]) {
       const { weights, offsets, pairs } = createGaussianKernel(sigma);
       let variance = 0;
       for (let pair = 0; pair < pairs; pair++) {
@@ -32,19 +32,19 @@ describe("CSS Gaussian bilinear kernel", () => {
   });
 });
 
-describe("experimental compact Gaussian", () => {
+describe("compact Gaussian", () => {
   it("normalizes truncated tails and preserves zero radius", () => {
     for (const sigma of [0, 0.5, 1, 2, 3, 4]) {
-      const compact = createGaussianKernel(sigma, 0, 4);
+      const compact = createGaussianKernel(sigma);
       const mass =
         compact.weights[0] +
         2 * compact.weights.slice(1).reduce((sum, weight) => sum + weight, 0);
       expect(compact.pairs).toBeLessThanOrEqual(4);
       expect(mass).toBeCloseTo(1, 6);
     }
-    expect(createGaussianKernel(0, 0, 4).pairs).toBe(0);
-    expect(createGaussianKernel(1, 0, 4)).toEqual(createGaussianKernel(1));
-    expect(createGaussianKernel(4, 0, 4).pairs).toBe(4);
-    expect(createGaussianKernel(4).pairs).toBe(6);
+    expect(createGaussianKernel(0).pairs).toBe(0);
+    expect(createGaussianKernel(4).pairs).toBe(4);
+    // The finite 17-texel footprint intentionally truncates wider kernels.
+    expect(createGaussianKernel(40).pairs).toBe(4);
   });
 });

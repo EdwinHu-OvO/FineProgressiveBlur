@@ -53,7 +53,7 @@ export const GradientBlurProvider = forwardRef<
 >(function GradientBlurProvider(
   {
     captureBackend = "auto",
-    algorithm = "gaussian13",
+    algorithm = "compact9",
     children,
     fallback = "css",
     maxDevicePixelRatio = 2,
@@ -66,12 +66,6 @@ export const GradientBlurProvider = forwardRef<
 ) {
   const providerRef = useRef<HTMLDivElement>(null);
   const [refreshVersion, setRefreshVersion] = useState(0);
-
-  const refresh = useCallback(() => {
-    setRefreshVersion((version) => version + 1);
-  }, []);
-
-  useImperativeHandle(forwardedRef, () => ({ refresh }), [refresh]);
 
   const resolveSource = useCallback(() => {
     if (sourceRef?.current) return sourceRef.current;
@@ -103,6 +97,11 @@ export const GradientBlurProvider = forwardRef<
   });
   const ritoSurface = enableRito ? rito.surface : null;
   const surface = nativeSurface ?? ritoSurface;
+  const refresh = useCallback(() => {
+    if (surface) surface.request("manual");
+    else setRefreshVersion((version) => version + 1);
+  }, [surface]);
+  useImperativeHandle(forwardedRef, () => ({ refresh }), [refresh]);
   const activeBackend = resolveBackend({
     webgl,
     nativePending,

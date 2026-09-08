@@ -3,7 +3,6 @@ import type {
   GradientBlurDirection,
   GradientBlurBackend,
   GradientBlurActiveBackend,
-  GradientBlurAlgorithm,
 } from "@/components/gradient-blur";
 import styles from "./controls.module.css";
 import { BackendControl } from "./BackendControl";
@@ -17,8 +16,6 @@ interface BlurControlsProps {
   directions: Record<GradientBlurDirection, boolean>;
   height: number;
   maxRadius: number;
-  algorithm: GradientBlurAlgorithm;
-  onAlgorithmChange: (value: GradientBlurAlgorithm) => void;
   strategy: CaptureStrategy;
   onHeightChange: (value: number) => void;
   onRadiusChange: (value: number) => void;
@@ -46,8 +43,6 @@ export function BlurControls({
   directions,
   height,
   maxRadius,
-  algorithm,
-  onAlgorithmChange,
   strategy,
   onHeightChange,
   onRadiusChange,
@@ -75,25 +70,6 @@ export function BlurControls({
         activeBackend={activeBackend}
         onChange={onBackendChange}
       />
-
-      <fieldset className={styles.fieldset}>
-        <legend>模糊算法</legend>
-        <select
-          id="blur-algorithm"
-          aria-label="模糊算法"
-          className={styles.backendSelect}
-          value={algorithm}
-          onChange={(event) =>
-            onAlgorithmChange(event.target.value as GradientBlurAlgorithm)
-          }
-        >
-          <option value="gaussian13">高斯 13 次采样（稳定）</option>
-          <option value="compact9">紧凑高斯 9 次采样（实验）</option>
-        </select>
-        <p className={styles.strategyNote}>
-          实验算法减少远端采样，先用于性能和画质对照，默认仍为稳定算法。
-        </p>
-      </fieldset>
 
       <fieldset className={styles.fieldset}>
         <legend>覆盖边缘</legend>
@@ -159,9 +135,7 @@ export function BlurControls({
             ? maxRadius > 0
               ? CSS_BLUR_LAYERS
               : 0
-            : algorithm === "compact9"
-              ? 9
-              : 13}
+            : 9}
         </span>
         <p>
           {cssOnly ? "层 backdrop-filter / 边缘" : "次双线性采样 / 轴（至多）"}

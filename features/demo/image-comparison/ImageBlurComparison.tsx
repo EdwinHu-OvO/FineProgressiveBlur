@@ -63,7 +63,7 @@ export function ImageBlurComparison({
           <figcaption>
             <span>当前算法</span>
             <code>
-              {algorithm === "gaussian13" ? "高斯 13" : "紧凑高斯 9"} ·{" "}
+              高斯 9 ·{" "}
               {effectiveRadius}px
             </code>
           </figcaption>

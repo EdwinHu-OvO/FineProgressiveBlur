@@ -48,10 +48,17 @@ export class RitoSurface implements BlurSurface {
       this.queue.request(),
     );
     this.detach = attachSurfaceEvents(options.source, this.host.canvas, {
-      content: () => this.queue.request(true),
+      content: (change) => {
+        if (change.kind === "fonts") this.resources.fontsChanged();
+        if (change.kind === "image") this.resources.imageLoaded(change.element);
+        this.queue.request(true);
+      },
       scroll: (nested) => this.queue.request(nested || this.scrollSensitive),
       scrollEnd: () => this.request("scrollend"),
-      resize: () => this.request("resize"),
+      resize: () => {
+        this.request("resize");
+        this.queue.request(true);
+      },
       visible: (visible) => this.queue.setVisible(visible),
       lost: (event) => {
         event.preventDefault();
@@ -201,6 +208,14 @@ export class RitoSurface implements BlurSurface {
         timestamp: performance.now(),
         captureMs,
         contentChanged,
+        cacheKey: JSON.stringify([
+          this.scene.tiles.contentVersion,
+          viewport,
+          selection,
+          overlay.options.direction,
+          overlay.options.maxRadius,
+          overlay.options.algorithm ?? "compact9",
+        ]),
       });
     this.redraw = false;
     this.host.show();
@@ -214,4 +229,5 @@ export class RitoSurface implements BlurSurface {
     this.dispose();
     this.options.onFailure(error);
   };
+
 }

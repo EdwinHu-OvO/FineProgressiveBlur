@@ -41,7 +41,7 @@ export class UniformImageRenderer {
 
   render(
     radius: number,
-    algorithm: GradientBlurAlgorithm = "gaussian13",
+    algorithm: GradientBlurAlgorithm = "compact9",
   ): void {
     if (!this.frame) return;
     const { width, height, pixelRatio, sourceWidth, sourceHeight } = this.frame;

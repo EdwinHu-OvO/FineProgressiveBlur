@@ -111,7 +111,7 @@ export class GradientBlurRenderer {
     if (!this.atlas) return;
     const gl = this.gl,
       u = this.uniforms;
-    const key = `${profile.direction}:${profile.maxRadius}:${Boolean(profile.uniformRadius)}:${profile.algorithm ?? "gaussian13"}`;
+    const key = `${profile.direction}:${profile.maxRadius}:${Boolean(profile.uniformRadius)}:${profile.algorithm ?? "compact9"}`;
     gl.disable(gl.BLEND);
     if (!this.filtered || key !== this.filteredProfile) {
       this.filtered = this.gaussian.apply(

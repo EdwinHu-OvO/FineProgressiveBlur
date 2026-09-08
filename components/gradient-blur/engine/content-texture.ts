@@ -5,14 +5,18 @@ import { TextureComparison } from "./texture-comparison";
 export class ContentTexture {
   private accepted: CanvasTexture;
   private candidate: CanvasTexture;
-  private readonly comparison: TextureComparison;
+  private readonly comparison: TextureComparison | null;
   private width = 0;
   private height = 0;
 
-  constructor(gl: WebGL2RenderingContext) {
+  constructor(
+    gl: WebGL2RenderingContext,
+    options: { compare?: boolean } = {},
+  ) {
     this.accepted = new CanvasTexture(gl);
     this.candidate = new CanvasTexture(gl);
-    this.comparison = new TextureComparison(gl);
+    this.comparison =
+      options.compare === false ? null : new TextureComparison(gl);
   }
 
   get framebuffer(): WebGLFramebuffer {
@@ -22,6 +26,7 @@ export class ContentTexture {
   async update(
     canvas: HTMLCanvasElement | OffscreenCanvas,
     signal: AbortSignal,
+    compare = true,
   ): Promise<{ changed: boolean; uploadMs: number }> {
     signal.throwIfAborted();
     const startedAt = performance.now();
@@ -31,13 +36,14 @@ export class ContentTexture {
     const changed =
       width !== this.width ||
       height !== this.height ||
-      (await this.comparison.differs(
+      !compare ||
+      (await this.comparison?.differs(
         this.accepted.texture,
         this.candidate.texture,
         width,
         height,
         signal,
-      ));
+      ) ?? true);
     signal.throwIfAborted();
     if (changed) {
       [this.accepted, this.candidate] = [this.candidate, this.accepted];
@@ -48,7 +54,7 @@ export class ContentTexture {
   }
 
   dispose(): void {
-    this.comparison.dispose();
+    this.comparison?.dispose();
     this.accepted.dispose();
     this.candidate.dispose();
   }

@@ -39,11 +39,9 @@ export class GaussianBlur {
     (typeof UNIFORM_NAMES)[number],
     WebGLUniformLocation
   >;
-  private currentMaxPairs = 6;
   private readonly kernels: Array<{
     sigma: number;
     variance: number;
-    maxPairs: number;
     kernel: ReturnType<typeof createGaussianKernel>;
   }> = [];
 
@@ -75,7 +73,6 @@ export class GaussianBlur {
     if (profile.maxRadius <= 0) return { texture: source };
     const gl = this.gl,
       u = this.uniforms;
-    this.currentMaxPairs = profile.algorithm === "compact9" ? 4 : 6;
     this.firstPass.resize(atlas.width, atlas.height);
     const fuseVertical =
       profile.uniformRadius &&
@@ -133,7 +130,7 @@ export class GaussianBlur {
           gl.uniform1fv(u.offsets, kernel.offsets);
           gl.uniform1i(u.pairs, kernel.pairs);
         } else {
-          gl.uniform1i(u.pairs, this.currentMaxPairs);
+          gl.uniform1i(u.pairs, 4);
         }
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       }
@@ -162,15 +159,13 @@ export class GaussianBlur {
     const cached = this.kernels[axis];
     if (
       cached?.sigma === sigma &&
-      cached.variance === variance &&
-      cached.maxPairs === this.currentMaxPairs
+      cached.variance === variance
     )
       return cached.kernel;
-    const kernel = createGaussianKernel(sigma, variance, this.currentMaxPairs);
+    const kernel = createGaussianKernel(sigma, variance);
     this.kernels[axis] = {
       sigma,
       variance,
-      maxPairs: this.currentMaxPairs,
       kernel,
     };
     return kernel;

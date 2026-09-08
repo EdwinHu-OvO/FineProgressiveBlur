@@ -1,17 +1,16 @@
-export const GAUSSIAN_PAIRS = 6;
+export const GAUSSIAN_PAIRS = 4;
 
 /** Normalized adjacent-tap pairs for hardware bilinear sampling. */
 export function createGaussianKernel(
   sigma: number,
   resampleVariance = 0,
-  maxPairs = GAUSSIAN_PAIRS,
 ) {
   const variance = Math.max(0, sigma * sigma - resampleVariance);
   const weights = new Float32Array(GAUSSIAN_PAIRS + 1);
   const offsets = new Float32Array(GAUSSIAN_PAIRS);
   weights[0] = 1;
   if (variance < 0.01) return { weights, offsets, pairs: 0 };
-  const pairs = Math.min(maxPairs, Math.ceil(Math.ceil(3 * sigma) / 2));
+  const pairs = Math.min(GAUSSIAN_PAIRS, Math.ceil(Math.ceil(3 * sigma) / 2));
   let total = 1;
   for (let pair = 0; pair < pairs; pair++) {
     const first = pair * 2 + 1;

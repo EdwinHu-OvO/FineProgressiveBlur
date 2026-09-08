@@ -11,6 +11,7 @@ export interface DomScene {
   width: number;
   height: number;
   scrollSensitive: boolean;
+  fontVersion?: number;
 }
 
 export async function readDomScene(
@@ -154,6 +155,7 @@ export async function readDomScene(
     width: geometry.width,
     height: geometry.height,
     scrollSensitive,
+    fontVersion: resources.fontVersion,
   };
 }
 

@@ -1,14 +1,23 @@
-/** Events nominate a new capture; GPU pixel equality decides whether it needs rendering. */
+import { observeContentResize } from "./content-resize";
+
+export type ContentChange =
+  | { kind: "dom" }
+  | { kind: "fonts" }
+  | { kind: "image"; element: HTMLImageElement };
+
+/** Events mark content dirty; retained paint commands reject no-op changes before rasterizing. */
 export function attachContentEvents(
   source: HTMLElement,
-  changed: () => void,
+  changed: (change: ContentChange) => void,
 ): () => void {
   let frame = 0;
   let disposed = false;
   const videos = new WeakMap<HTMLVideoElement, number>();
   const isOverlay = (node: Node) =>
-    (node instanceof Element ? node : node.parentElement)?.closest(
-      "[data-gradient-blur-overlay]",
+    Boolean(
+      (node instanceof Element ? node : node.parentElement)?.closest(
+        "[data-gradient-blur-overlay], [data-gradient-blur-rito], [data-gradient-blur-twin-ignore]",
+      ),
     );
   const runningAnimation = () =>
     source
@@ -25,22 +34,37 @@ export function attachContentEvents(
       if (videos.get(video) !== video.currentTime) dirty = true;
       videos.set(video, video.currentTime);
     }
-    if (dirty) changed();
+    if (dirty) changed({ kind: "dom" });
     if (active) frame = requestAnimationFrame(tick);
   };
-  const check = () => {
+  const check = (change: ContentChange = { kind: "dom" }) => {
     if (disposed) return;
-    changed();
+    changed(change);
     if (!frame) frame = requestAnimationFrame(tick);
   };
+  const resize = observeContentResize(source, () => check(), isOverlay);
   const observer = new MutationObserver((records) => {
-    if (records.some((record) => !isOverlay(record.target))) check();
+    const relevant = records.filter((record) => {
+      if (isOverlay(record.target)) return false;
+      if (record.type === "attributes")
+        return (
+          record.oldValue !==
+          (record.target as Element).getAttribute(record.attributeName!)
+        );
+      if (record.type === "characterData")
+        return record.oldValue !== record.target.textContent;
+      return [...record.addedNodes, ...record.removedNodes].some((node) => !isOverlay(node));
+    });
+    if (relevant.some((record) => record.type === "childList")) resize.sync();
+    if (relevant.length) check();
   });
   observer.observe(source, {
     subtree: true,
     childList: true,
     characterData: true,
     attributes: true,
+    attributeOldValue: true,
+    characterDataOldValue: true,
   });
   // Stylesheet edits and font completion can change pixels without changing source nodes.
   if (document.head)
@@ -49,9 +73,16 @@ export function attachContentEvents(
       childList: true,
       characterData: true,
       attributes: true,
+      attributeOldValue: true,
+      characterDataOldValue: true,
     });
   const onEvent = (event: Event) => {
-    if (event.target instanceof Node && !isOverlay(event.target)) check();
+    if (!(event.target instanceof Node) || isOverlay(event.target)) return;
+    check(
+      event.type === "load" && event.target instanceof HTMLImageElement
+        ? { kind: "image", element: event.target }
+        : { kind: "dom" },
+    );
   };
   const events = [
     "input",
@@ -74,17 +105,24 @@ export function attachContentEvents(
     "loadeddata",
   ];
   for (const event of events) source.addEventListener(event, onEvent, true);
-  document.fonts?.addEventListener("loadingdone", check);
-  document.addEventListener("visibilitychange", check);
+  const fonts = () => check({ kind: "fonts" });
+  const visibility = () => {
+    if (document.visibilityState !== "hidden") check();
+  };
+  document.fonts?.addEventListener("loadingdone", fonts);
+  document.fonts?.addEventListener("loadingerror", fonts);
+  document.addEventListener("visibilitychange", visibility);
   // Animations or video may already be playing when the observer is installed.
   frame = requestAnimationFrame(tick);
   return () => {
     disposed = true;
     cancelAnimationFrame(frame);
     observer.disconnect();
+    resize.disconnect();
     for (const event of events)
       source.removeEventListener(event, onEvent, true);
-    document.fonts?.removeEventListener("loadingdone", check);
-    document.removeEventListener("visibilitychange", check);
+    document.fonts?.removeEventListener("loadingdone", fonts);
+    document.fonts?.removeEventListener("loadingerror", fonts);
+    document.removeEventListener("visibilitychange", visibility);
   };
 }

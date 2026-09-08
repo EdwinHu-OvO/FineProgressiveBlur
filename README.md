@@ -44,7 +44,7 @@ Provider 需要稳定、可计算的尺寸。采集源优先使用 `sourceRef`�
 | `maxDevicePixelRatio` | `number`                               | `2`      | 最大纹理 DPR，限制在 1–3                                  |
 | `fallback`            | `"css" \| "transparent"`               | `"css"`  | 仅 WebGL2 不可用时生效                                    |
 
-通过 ref 调用 `refresh()` 可以重建后端，刷新命令式 Canvas/CSSOM 变化，或重试失败的初始化。正文节点与滚动位置保留。
+通过 ref 调用 `refresh()` 可以标记现有后端的内容，刷新命令式 Canvas/CSSOM 变化；后端尚未建立时会重试初始化。正文节点与滚动位置保留。
 
 ### Overlay
 
@@ -79,8 +79,8 @@ SnapDOM、快照采集器与公开的 `captureAdapter` / Canvas adapter 接口�
 `live` 无固定采样间隔。事件合并到动画帧，只保留一个在途任务和最新待处理变化；页面不可见时暂停。
 
 - 原生路径监听浏览器的 `paint.changedElements`，静止时不定时请求快照。
-- Rito 读取浏览器布局并用提取的 Canvas 绘制器缓存正文块。缓存内普通滚动只改变 GPU 取样窗口，不重画或上传正文。
-- 内容变化检查受影响块；候选纹理在 GPU 比较全部像素，相同则跳过视口与模糊更新。比较有候选上传、一个比较 pass 和异步查询成本，但没有 CPU 图像读回。
+- Rito 读取浏览器布局并用提取的 Canvas 绘制器缓存正文块。缓存内普通滚动只改变 GPU 取样窗口，不重画或上传正文；live 路径在可稳定标识窗口的适配器上保留最多 3 个已完成模糊结果，Rito 的连续滚动则复用活动 renderer 并持续更新图集，避免每帧创建 GPU 资源。
+- 内容变化先按绘制指令检查受影响块；未变化的块跳过 Canvas 2D 与 candidate 上传，变化块在 accepted/candidate 双纹理间原子交换，没有 CPU 图像读回。
 - 选区与焦点在 GPU 合成；嵌套滚动和 sticky 内容需要更新受影响的缓存块。动态 Canvas 可显式调用 `refresh()`。
 
 `scrollend` 在滚动停止后更新模糊，等待时显示正文。`static` 只在初始化、尺寸变化和手动刷新时更新；过期的模糊隐藏到下一次更新。
@@ -90,8 +90,10 @@ SnapDOM、快照采集器与公开的 `captureAdapter` / Canvas adapter 接口�
 1. Provider 共用一个 WebGL2 场景与正文纹理，边缘从 GPU 场景裁剪，不向 CPU 读回。
 2. 按局部标准差与 DPR 将边缘拆成最多 8 个 Atlas band，分辨率从 1× 到 1/128×。保留混合区及 3σ 邻域，裁切对齐真实的降采样纹素，避免拉伸；零半径保持原始分辨率。
 3. 将 sRGB 场景转换为编码 sRGB、预乘 Alpha 的 RGBA8 缓冲，再逐级降采样。奇数尺寸按源像素覆盖面积滤波，减少细线混叠。各 band 共享降采样结果。
-4. 渐变模式先纵向、再横向高斯卷积，使每一行的两个方向使用相同 σ，避免纵向拉丝。合并相邻权重后每轴最多 13 次双线性采样，扣除重采样引入的近似方差。固定半径在 CPU 预计算权重；原始分辨率时将纵向卷积合入最终输出。
+4. 渐变模式先纵向、再横向高斯卷积，使每一行的两个方向使用相同 σ，避免纵向拉丝。合并相邻权重后每轴最多 9 次双线性采样，扣除重采样引入的近似方差。固定半径在 CPU 预计算权重；原始分辨率时将纵向卷积合入最终输出。
 5. 较粗一级的 σ 从 2 降到 1.5 texel 时平滑混入下一档。最终通常读取 1–2 次，并以不透明颜色覆盖正文，避免二次混合；纹理与参数不变时复用卷积结果。
+
+当前只保留 `compact9`：中心加四组双线性采样，即每轴最多 9 次有效采样；渐变权重递推使用范围缩减的五阶多项式近似 `exp(-x)`。
 
 `maxRadius` 与 [CSS blur()](https://www.w3.org/TR/filter-effects-1/#funcdef-filter-blur) 同样表示高斯标准差。无随机采样噪点，使用 sRGB 混合以接近 CSS；降采样与浏览器实现仍会带来偏差。见 [CSS 模糊校准](docs/css-blur-alignment.md) 与 [Apple 模糊调研](docs/apple-blur-research.md)。
 
@@ -102,6 +104,10 @@ SnapDOM、快照采集器与公开的 `captureAdapter` / Canvas adapter 接口�
 演示页 `#image-blur-comparison` 使用同一张本地照片、裁切与边缘延展，并排比较组件算法与普通 CSS `filter: blur()`。固定半径 0–48px，没有渐变或空间分区；「查看原图」同步归零。
 
 半径变化复用源纹理，跨降采样档位只在 GPU 重建图集；图片加载、尺寸/DPR 变化和上下文恢复时才重新上传图片。WebGL2 不可用时左侧明确显示不可用，右侧 CSS 参考图仍可查看。见 [图片署名](public/images/ATTRIBUTION.md)。
+
+## GPU 基准
+
+打开 `/benchmark` 可运行浏览器端 GPU 基准。工具优先使用可选的 `EXT_disjoint_timer_query_webgl2` 测量生产渐变渲染路径；没有该扩展时自动使用包含 `gl.finish()` 的墙钟计时。每次重新上传图集以强制执行卷积；结果以中位数和 P10–P90 范围显示，并可下载 JSON。
 
 ## 许可证
 

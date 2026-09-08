@@ -74,7 +74,7 @@ export function RuntimeDiagnostics({
         <Metric label="Texture submit" value={formatTime(uploadMs)} />
         <Metric
           label="Kernel"
-          value={`Gaussian ≤${latest?.sampleCount ?? 13} / axis`}
+          value={`Gaussian ≤${latest?.sampleCount ?? 9} / axis`}
         />
         <Metric
           label="GPU render"
@@ -90,7 +90,7 @@ export function RuntimeDiagnostics({
             <AtlasDiagram metrics={latest} />
             <p>
               按局部标准差与 DPR 选择 1×、½、¼ 及更低分辨率，使每轴卷积至多读取
-              13 次。 分区保留 3σ 邻域，接缝平滑混合；零半径使用原始分辨率。
+              {latest?.sampleCount ?? 9} 次。分区保留 3σ 邻域，接缝平滑混合；零半径使用原始分辨率。
             </p>
           </div>
           <div>

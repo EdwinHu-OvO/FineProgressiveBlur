@@ -30,17 +30,20 @@ export interface SurfaceFrame {
   timestamp: number;
   captureMs: number;
   contentChanged: boolean;
+  /** Stable document-window identity supplied by tile-backed surfaces. */
+  cacheKey?: string;
 }
 
 export class SurfaceOverlay {
   private readonly renderer: GradientBlurRenderer;
+  private readonly cachedRenderers = new Map<string, GradientBlurRenderer>();
   private readonly metrics: RenderMetrics;
   private pending: CaptureReason | null = "initial";
   private valid = false;
   private count = 0;
 
   constructor(
-    canvas: HTMLCanvasElement,
+    private readonly canvas: HTMLCanvasElement,
     scene: SceneTexture,
     readonly options: SurfaceOverlayOptions,
   ) {
@@ -70,13 +73,23 @@ export class SurfaceOverlay {
     const scaleX = canvas.width / canvasBounds.width;
     const scaleY = canvas.height / canvasBounds.height;
     const pixelRatio = frame.pixelRatio;
-    const reason =
-      this.pending ??
-      (frame.contentChanged && strategy === "live" ? "live" : null);
+    const reason = this.pending ?? (frame.contentChanged && strategy === "live" ? "live" : null);
     if (frame.contentChanged && strategy !== "live" && !reason)
       this.invalidate();
 
-    if (reason) {
+    // Rito's live path moves the viewport on every scroll event. Its cache key
+    // therefore changes every frame and would churn GPU programs and targets;
+    // keep one renderer for the moving frame while still updating its atlas.
+    const cacheKey =
+      strategy === "live" && frame.adapterId !== "rito"
+        ? frame.cacheKey
+        : undefined;
+    const cacheHit = Boolean(cacheKey && this.cachedRenderers.has(cacheKey));
+    const renderer = cacheKey
+      ? this.rendererFor(cacheKey)
+      : this.renderer;
+    element.dataset.gradientBlurCache = cacheHit ? "hit" : "miss";
+    if (reason && !cacheHit) {
       const startedAt = performance.now();
       const sourceWidth = Math.max(1, Math.round(width * pixelRatio));
       const sourceHeight = Math.max(1, Math.round(height * pixelRatio));
@@ -88,15 +101,11 @@ export class SurfaceOverlay {
       );
       const atlasBuildMs = performance.now() - startedAt;
       const uploadStartedAt = performance.now();
-      this.renderer.uploadGpuAtlas(
+      renderer.uploadGpuAtlas(
         scene.framebuffer,
         {
           x: (sourceBounds.left - canvasBounds.left) * scaleX,
-          y:
-            (sourceBounds.top -
-              canvasBounds.top +
-              (direction === "bottom" ? sourceBounds.height - height : 0)) *
-            scaleY,
+          y: (sourceBounds.top - canvasBounds.top + (direction === "bottom" ? sourceBounds.height - height : 0)) * scaleY,
           width: width * scaleX,
           height: height * scaleY,
         },
@@ -108,7 +117,7 @@ export class SurfaceOverlay {
         adapterId: frame.adapterId ?? "html-in-canvas",
         atlas,
         atlasBuildMs,
-        sampleCount: this.options.algorithm === "compact9" ? 9 : 13,
+        sampleCount: 9,
         captureCount: frame.captureCount ?? ++this.count,
         captureMs: frame.captureMs,
         direction,
@@ -127,11 +136,16 @@ export class SurfaceOverlay {
       if (!this.valid) this.options.onPhase("ready");
       this.valid = true;
     }
-    if (this.draw(canvas, frame.sourceBounds)) this.metrics.record(timestamp);
+    if (this.draw(canvas, frame.sourceBounds, renderer))
+      this.metrics.record(timestamp);
     this.metrics.publish(Boolean(reason && reason !== "live"), timestamp);
   }
 
-  draw(canvas: HTMLCanvasElement, sourceBounds?: DOMRect): boolean {
+  draw(
+    canvas: HTMLCanvasElement,
+    sourceBounds?: DOMRect,
+    renderer = this.renderer,
+  ): boolean {
     if (!this.valid) return false;
     const bounds = canvas.getBoundingClientRect();
     const overlay = this.options.element.getBoundingClientRect();
@@ -153,7 +167,7 @@ export class SurfaceOverlay {
       : overlay;
     const scaleX = canvas.width / bounds.width;
     const scaleY = canvas.height / bounds.height;
-    this.renderer.render(this.options, {
+    renderer.render(this.options, {
       x: Math.round((region.left - bounds.left) * scaleX),
       y: Math.round((bounds.bottom - region.bottom) * scaleY),
       width: Math.round(region.width * scaleX),
@@ -164,5 +178,30 @@ export class SurfaceOverlay {
 
   dispose(): void {
     this.renderer.dispose();
+    for (const renderer of this.cachedRenderers.values()) renderer.dispose();
+    this.cachedRenderers.clear();
+  }
+
+  private rendererFor(cacheKey: string): GradientBlurRenderer {
+    const cached = this.cachedRenderers.get(cacheKey);
+    if (cached) {
+      this.cachedRenderers.delete(cacheKey);
+      this.cachedRenderers.set(cacheKey, cached);
+      return cached;
+    }
+    const renderer = new GradientBlurRenderer(
+      this.canvas,
+      this.renderer.gl,
+    );
+    this.cachedRenderers.set(cacheKey, renderer);
+    while (this.cachedRenderers.size > 3) {
+      const oldest = this.cachedRenderers.entries().next().value as
+        | [string, GradientBlurRenderer]
+        | undefined;
+      if (!oldest) break;
+      oldest[1].dispose();
+      this.cachedRenderers.delete(oldest[0]);
+    }
+    return renderer;
   }
 }

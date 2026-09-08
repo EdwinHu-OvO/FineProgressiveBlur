@@ -68,9 +68,10 @@ Provider 共享同一个 WebGL2 场景。Rito 用 Canvas 2D 绘制缓存正文�
 - 捕获和裁剪对齐实际降采样纹素；奇数尺寸使用面积覆盖降采样，避免细线断层。
 - 纹理先转换为编码 sRGB、预乘 Alpha 的 RGBA8，再使用高斯分离卷积。
 - 渐变半径先沿 Y、再沿 X，避免 X→Y 带来的纵向拉丝；固定半径可融合垂直 pass。
-- 稳定算法最多 13 次双线性读取/轴（中心 + 6 组相邻权重）。权重在 CPU 侧缓存，shader 不使用随机噪点。
+- 高斯算法固定最多 9 次双线性读取/轴（中心 + 4 组相邻权重）。权重在 CPU 侧缓存，shader 不使用随机噪点。
 - band 边界使用连续阈值和混合，不使用固定 2px 接缝。
 - 纹理、radius、algorithm 没有变化时复用已完成的高斯结果；内容不变时 Rito 不重画正文块、不上传、不重做视口模糊。
+- `SurfaceOverlay` 可按内容版本、文档视口、选区、方向、半径和算法保留最多 3 个已完成的模糊渲染器；命中时复用 GPU 图集与卷积结果。Rito 的 live 连续滚动会复用一个活动 renderer 并持续更新图集，避免 viewport key 每帧变化导致 GPU 资源 churn；HTML-in-Canvas 不使用该窗口缓存。
 
 关键接口边界：
 
@@ -81,15 +82,15 @@ Provider 共享同一个 WebGL2 场景。Rito 用 Canvas 2D 绘制缓存正文�
 
 ## Demo 与实验算法
 
-Demo 状态在 [GradientBlurDemo.tsx](../features/demo/GradientBlurDemo.tsx) 中维护，算法选择由 [BlurControls.tsx](../features/demo/BlurControls.tsx) 暴露，并同步给 Provider、两个 Overlay 和图片对比区。
+Demo 状态在 [GradientBlurDemo.tsx](../features/demo/GradientBlurDemo.tsx) 中维护，算法固定为 compact9，由 [BlurControls.tsx](../features/demo/BlurControls.tsx) 暴露，并同步给 Provider、两个 Overlay 和图片对比区。
 
 当前类型：
 
 ```ts
-type GradientBlurAlgorithm = "gaussian13" | "compact9";
+type GradientBlurAlgorithm = "compact9";
 ```
 
-- `gaussian13`：稳定默认值，最多 13 次读取/轴。
+- `compact9`：唯一算法，最多中心 + 4 组双线性读取，也就是最多 9 个有效采样点。
 - `compact9`：实验值，最多中心 + 4 组双线性读取，也就是最多 9 个有效采样点。它通过截断远端尾部降低开销，可能降低大半径画质；当前不能称为最终算法。
 
 实验算法通过 `GradientBlurProfile.algorithm` 进入 `GaussianBlur` 和 `GradientBlurRenderer`，并包含在过滤缓存 key 中。若新增算法，必须同时更新：
@@ -100,7 +101,7 @@ type GradientBlurAlgorithm = "gaussian13" | "compact9";
 4. Demo 的算法选择说明和运行时诊断。
 5. 单元测试、CSS 对齐截图和 GPU 性能基准。
 
-当前没有足够证据让 `compact9` 成为生产默认。先测半径 1、4、12、28、48，DPR 1/2，照片和高频条纹，再决定是否保留、调校或删除。
+需要继续测量半径 1、4、12、28、48，DPR 1/2，照片和高频条纹，校准截断尾部带来的误差。
 
 ## Apple / Metal 调研结论
 
@@ -125,7 +126,7 @@ type GradientBlurAlgorithm = "gaussian13" | "compact9";
 
 - html2canvas/SnapDOM 捕获慢：已移除快照后端，Rito 作为原生路径失败后的 WebGL 后端。
 - `live` 固定 FPS 限制：已删除，改为内容事件、paint 通知和队列背压。
-- 纹理内容未变化仍重复上传：Rito 使用内容签名和 GPU 比较，静止时跳过正文上传与模糊。
+- 纹理内容未变化仍重复上传：Rito 使用 DOM 脏标记、内容签名和 tile halo，静止时跳过 Canvas 2D、candidate 上传与模糊。
 - 不同采样率拼接断层：band 捕获网格对齐降采样像素，使用连续阈值和混合 halo。
 - 渐变模糊纵向拉丝：渐变卷积顺序改为 Y→X，并修复底部镜像/奇数高度的采样坐标。
 - 随机噪点：移除旧的随机旋转/蓝噪点路径，改为确定性高斯权重。
@@ -165,7 +166,7 @@ pnpm test
 - WebGL2 可用但 Rito 不支持内容时 `unavailable` 且无 CSS 层。
 - context loss、后端来回切换、滚动位置和窄屏布局。
 - 图片对比区半径变化、原图切换、DPR 1/2 和 CSS 参考图。
-- `gaussian13` / `compact9` 切换后运行时显示 13 / 9 采样上限。
+- 运行时固定显示 9 次采样上限。
 
 浏览器验证脚本位于临时目录 `/tmp/fpb-browser-check`，不是仓库资产。若脚本不存在，使用 Playwright 重新编写等价场景；不要把临时依赖提交进项目。
 

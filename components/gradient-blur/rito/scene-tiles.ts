@@ -1,7 +1,7 @@
 import { ContentTexture } from "../engine/content-texture";
 import { paintCommands } from "./paint-commands";
 import type { DomScene } from "./dom-scene";
-import { tileSignature } from "./tile-signature";
+import { tileCommands, tileSignature } from "./tile-signature";
 
 interface Tile {
   texture: ContentTexture;
@@ -10,8 +10,10 @@ interface Tile {
   version: number;
   used: number;
   signature: string;
+  rasterTop: number;
 }
 const TILE_HEIGHT = 1024;
+const TILE_HALO = 16;
 const CACHE_BYTES = 64 * 1024 * 1024;
 
 /** Retains content tiles on the GPU. Scrolling cached content never paints or uploads. */
@@ -28,6 +30,10 @@ export class SceneTiles {
   paintCount = 0;
   uploadMs = 0;
 
+  get contentVersion(): number {
+    return this.version;
+  }
+
   constructor(private readonly gl: WebGL2RenderingContext) {
     const ctx = this.canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D is unavailable");
@@ -38,6 +44,7 @@ export class SceneTiles {
     const signature = JSON.stringify([
       scene.width,
       scene.height,
+      scene.fontVersion ?? 0,
       scene.commands,
     ]);
     const changed = signature !== this.signature;
@@ -60,14 +67,14 @@ export class SceneTiles {
     if (width !== this.width || ratio !== this.pixelRatio) {
       this.clear();
       const maxSize = this.gl.getParameter(this.gl.MAX_TEXTURE_SIZE) as number;
-      if (width > maxSize || width * TILE_HEIGHT * 9 > CACHE_BYTES)
+      if (width > maxSize || width * TILE_HEIGHT * 8 > CACHE_BYTES)
         throw new Error("Rito: content width exceeds the texture cache budget");
       this.width = width;
       this.pixelRatio = ratio;
-      // Two RGBA candidates and a one-channel comparison target per tile.
+      // Two RGBA textures per tile: accepted pixels remain visible while a candidate uploads.
       this.maxTiles = Math.max(
         1,
-        Math.floor(CACHE_BYTES / (width * TILE_HEIGHT * 9)),
+        Math.floor(CACHE_BYTES / (width * TILE_HEIGHT * 8)),
       );
     }
     const total = Math.ceil((this.scene.height * ratio) / TILE_HEIGHT);
@@ -92,7 +99,7 @@ export class SceneTiles {
       if (!tile) {
         this.evict(protectedIndices);
         tile = {
-          texture: new ContentTexture(this.gl),
+          texture: new ContentTexture(this.gl, { compare: false }),
           top: index * TILE_HEIGHT,
           height: Math.min(
             TILE_HEIGHT,
@@ -101,6 +108,7 @@ export class SceneTiles {
           version: -1,
           used: 0,
           signature: "",
+          rasterTop: index * TILE_HEIGHT,
         };
         this.tiles.set(index, tile);
       }
@@ -111,21 +119,40 @@ export class SceneTiles {
         TILE_HEIGHT,
         Math.ceil(this.scene.height * ratio) - tile.top,
       );
+      const rasterTop = Math.max(0, tile.top - TILE_HALO);
+      const rasterBottom = Math.min(
+        Math.ceil(this.scene.height * ratio),
+        tile.top + tileHeight + TILE_HALO,
+      );
+      const rasterHeight = rasterBottom - rasterTop;
       const signature = tileSignature(
         this.scene.commands,
-        tile.top / ratio,
-        tileHeight / ratio,
+        rasterTop / ratio,
+        rasterHeight / ratio,
       );
-      if (signature === tile.signature && tile.height === tileHeight) {
+      if (
+        signature === tile.signature &&
+        tile.height === tileHeight &&
+        tile.rasterTop === rasterTop
+      ) {
         tile.version = this.version;
         continue;
       }
       tile.height = tileHeight;
       this.canvas.width = width;
-      this.canvas.height = tile.height;
-      this.ctx.setTransform(ratio, 0, 0, ratio, 0, -tile.top);
-      paintCommands(this.ctx, this.scene.commands, this.scene.images);
-      const result = await tile.texture.update(this.canvas, signal);
+      this.canvas.height = rasterHeight;
+      tile.rasterTop = rasterTop;
+      this.ctx.setTransform(ratio, 0, 0, ratio, 0, -rasterTop);
+      paintCommands(
+        this.ctx,
+        tileCommands(
+          this.scene.commands,
+          rasterTop / ratio,
+          rasterHeight / ratio,
+        ),
+        this.scene.images,
+      );
+      const result = await tile.texture.update(this.canvas, signal, false);
       this.paintCount += 1;
       this.uploadMs += result.uploadMs;
       tile.version = this.version;
@@ -151,25 +178,15 @@ export class SceneTiles {
       const end = Math.min(top + height, tile.top + tile.height);
       if (end <= start || tile.version !== this.version) continue;
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, tile.texture.framebuffer);
-      gl.blitFramebuffer(
-        left,
-        start - tile.top,
-        left + width,
-        end - tile.top,
-        0,
-        start - top,
-        width,
-        end - top,
-        gl.COLOR_BUFFER_BIT,
-        gl.NEAREST,
-      );
+      gl.blitFramebuffer(left, start - tile.rasterTop, left + width, end - tile.rasterTop,
+        0, start - top, width, end - top, gl.COLOR_BUFFER_BIT, gl.NEAREST);
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   get retainedBytes(): number {
     return Array.from(this.tiles.values()).reduce(
-      (sum, tile) => sum + this.width * tile.height * 9,
+      (sum, tile) => sum + this.width * tile.height * 8,
       0,
     );
   }

@@ -24,8 +24,7 @@ export function GradientBlurDemo() {
   const [height, setHeight] = useState(112);
   const [maxRadius, setMaxRadius] = useState(28);
   const [strategy, setStrategy] = useState<CaptureStrategy>("live");
-  const [algorithm, setAlgorithm] =
-    useState<GradientBlurAlgorithm>("gaussian13");
+  const algorithm: GradientBlurAlgorithm = "compact9";
   const [directions, setDirections] = useState(INITIAL_DIRECTIONS);
   const [effectEnabled, setEffectEnabled] = useState(true);
   const [metrics, setMetrics] = useState<
@@ -51,7 +50,6 @@ export function GradientBlurDemo() {
     setHeight(112);
     setMaxRadius(28);
     setStrategy("live");
-    setAlgorithm("gaussian13");
     setDirections(INITIAL_DIRECTIONS);
     setEffectEnabled(true);
   }, []);
@@ -107,8 +105,6 @@ export function GradientBlurDemo() {
           directions={directions}
           height={height}
           maxRadius={maxRadius}
-          algorithm={algorithm}
-          onAlgorithmChange={setAlgorithm}
           strategy={strategy}
           onHeightChange={setHeight}
           onRadiusChange={setMaxRadius}

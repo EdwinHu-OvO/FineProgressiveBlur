@@ -6,7 +6,7 @@ import type {
 } from "react";
 
 /** Maximum bilinear reads per Gaussian axis; passes run at each band's resolution. */
-export const GRADIENT_BLUR_SAMPLE_COUNT = 13;
+export const GRADIENT_BLUR_SAMPLE_COUNT = 9;
 
 export type CaptureStrategy = "static" | "scrollend" | "live";
 export type GradientBlurBackend = "auto" | "html-in-canvas" | "rito";
@@ -16,7 +16,7 @@ export type GradientBlurDirection = "top" | "bottom";
 export type GradientBlurPhase = "idle" | "capturing" | "ready" | "fallback";
 export type CaptureReason =
   "initial" | "resize" | "scrollend" | "live" | "manual";
-export type GradientBlurAlgorithm = "gaussian13" | "compact9";
+export type GradientBlurAlgorithm = "compact9";
 
 export interface GradientBlurBandMetrics {
   label: "outer" | "middle" | "inner";
