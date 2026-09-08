@@ -1,0 +1,72 @@
+"use client";
+
+import { useLayoutEffect, useRef } from "react";
+import { useGradientBlurContext } from "./GradientBlurProvider";
+import { CssGradientBlurFallback } from "./fallback/CssGradientBlurFallback";
+import type { GradientBlurOverlayProps } from "./types";
+import { OVERLAY_SLOT } from "./native/native-host";
+import { useSurfaceOverlay } from "./engine/useSurfaceOverlay";
+
+export function GradientBlurOverlay({
+  captureStrategy = "live",
+  className,
+  direction,
+  height = 100,
+  maxRadius = 24,
+  onMetrics,
+  style,
+  ...overlayProps
+}: GradientBlurOverlayProps) {
+  const { fallback, surface, activeBackend, algorithm } =
+    useGradientBlurContext();
+  const cssOnly = activeBackend === "css";
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const surfacePhase = useSurfaceOverlay({
+    surface,
+    overlayRef,
+    direction,
+    maxRadius,
+    algorithm,
+    strategy: captureStrategy,
+    onMetrics,
+  });
+  const phase = cssOnly
+    ? "ready"
+    : activeBackend === "pending"
+      ? "capturing"
+      : surface
+        ? surfacePhase
+        : "unavailable";
+  useLayoutEffect(() => {
+    // Backend switches must not reveal a previous renderer's ready pixels.
+    overlayRef.current?.style.setProperty("--gradient-blur-ready", "0");
+  }, [activeBackend]);
+
+  return (
+    <div
+      {...overlayProps}
+      ref={overlayRef}
+      slot={OVERLAY_SLOT}
+      aria-hidden="true"
+      className={className}
+      data-gradient-blur-overlay=""
+      data-phase={phase}
+      data-direction={direction}
+      style={{
+        ...style,
+        contain: "layout paint style",
+        height,
+        insetInline: 0,
+        overflow: "hidden",
+        pointerEvents: "none",
+        position: "absolute",
+        [direction]: 0,
+        zIndex: 2,
+      }}
+    >
+      {cssOnly && fallback === "css" && (
+        <CssGradientBlurFallback direction={direction} maxRadius={maxRadius} />
+      )}
+    </div>
+  );
+}

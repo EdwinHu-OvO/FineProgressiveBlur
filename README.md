@@ -1,191 +1,108 @@
-# FineProgressiveBlur
+# Fine Progressive Blur
 
-<div align="center">
+面向滚动内容边缘的 React / Next.js 渐变模糊组件。顶部和底部使用连续半径，保留原生滚动、交互与无障碍语义。
 
-一个基于 React + Next.js 的细腻渐进式背景模糊组件，通过多层叠加技术实现平滑自然的模糊渐变效果。
-
-[![Next.js](https://img.shields.io/badge/Next.js-16.0.1-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.2.0-blue?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.x-38bdf8?logo=tailwind-css)](https://tailwindcss.com/)
-
-</div>
-
-## ✨ 特性
-
-- 🎨 **细腻分层算法** - 独特的分层策略，将模糊区域分为细腻阶段和粗糙阶段，确保过渡平滑自然
-- 📐 **精确的高斯模糊控制** - 基于方差可加性原理，科学分配每层的模糊强度
-- 🎯 **灵活的位置配置** - 支持顶部、底部或两端同时应用模糊效果
-- 🌈 **多种颜色格式** - 支持 `rgba()`、`#RRGGBB`、`#RRGGBBAA` 等颜色格式
-- 🎛️ **完全可定制** - 提供丰富的参数配置，满足各种设计需求
-- 📱 **响应式友好** - 适配各种屏幕尺寸和容器
-
-## 🖼️ 效果预览
-
-![演示效果](/readme/preview.png)
-
-## 🚀 快速开始
-
-### 安装依赖
+## 开发
 
 ```bash
-npm install
-# 或
 pnpm install
-# 或
-yarn install
-```
-
-### 启动开发服务器
-
-```bash
-npm run dev
-# 或
 pnpm dev
-# 或
-yarn dev
 ```
 
-打开浏览器访问 [http://localhost:3000](http://localhost:3000) 查看演示页面。
+打开 <http://localhost:3000>。常规检查：`pnpm lint`、`pnpm typecheck`、`pnpm test`。
 
-## 📖 使用方法
-
-### 基础用法
+## 使用
 
 ```tsx
-import FineProgressiveBlur from "@/component/FineProgressiveBlur";
+import {
+  GradientBlurOverlay,
+  GradientBlurProvider,
+} from "@/components/gradient-blur";
 
-export default function MyComponent() {
+export function ScrollSurface() {
   return (
-    <FineProgressiveBlur
-      blur={24}
-      height={120}
-      color="rgba(255,255,255,0.85)"
-      position="both"
-      border={8}
-    >
-      {/* 你的内容 */}
-    </FineProgressiveBlur>
+    <GradientBlurProvider captureBackend="auto">
+      <GradientBlurOverlay direction="top" height={100} maxRadius={24} />
+      <div className="scroll-container" data-gradient-blur-source>
+        {/* 原生滚动内容 */}
+      </div>
+      <GradientBlurOverlay direction="bottom" height={100} maxRadius={24} />
+    </GradientBlurProvider>
   );
 }
 ```
 
-### Props 参数说明
+Provider 需要稳定、可计算的尺寸。采集源优先使用 `sourceRef`，其次寻找直接子元素 `[data-gradient-blur-source]`，最后使用第一个非 Overlay 子元素。Overlay 绝对定位，不参与布局，默认穿透指针事件。
 
-| 参数       | 类型                          | 必填 | 默认值 | 说明                                            |
-| ---------- | ----------------------------- | ---- | ------ | ----------------------------------------------- |
-| `blur`     | `number`                      | ✅   | -      | 模糊强度（px），推荐范围 0-30                   |
-| `height`   | `number`                      | ✅   | -      | 渐隐高度（px），模糊效果覆盖的区域高度          |
-| `color`    | `string`                      | ✅   | -      | 遮罩颜色，支持 `rgba()`、`#RRGGBB`、`#RRGGBBAA` |
-| `position` | `"top" \| "bottom" \| "both"` | ✅   | -      | 模糊效果位置                                    |
-| `border`   | `number`                      | ❌   | `0`    | 圆角半径（px），用于匹配内容容器的圆角          |
+### Provider
 
-### 使用示例
+| 属性                  | 类型                                   | 默认值   | 说明                                                      |
+| --------------------- | -------------------------------------- | -------- | --------------------------------------------------------- |
+| `sourceRef`           | `RefObject<HTMLElement \| null>`       | —        | Provider 内的正文容器                                     |
+| `captureBackend`      | `"auto" \| "html-in-canvas" \| "rito"` | `"auto"` | 首选渲染路径                                              |
+| `onBackendChange`     | `(backend) => void`                    | —        | `pending`、`html-in-canvas`、`rito`、`css`、`unavailable` |
+| `maxDevicePixelRatio` | `number`                               | `2`      | 最大纹理 DPR，限制在 1–3                                  |
+| `fallback`            | `"css" \| "transparent"`               | `"css"`  | 仅 WebGL2 不可用时生效                                    |
 
-#### 1. 顶部白色渐变模糊
+通过 ref 调用 `refresh()` 可以重建后端，刷新命令式 Canvas/CSSOM 变化，或重试失败的初始化。正文节点与滚动位置保留。
 
-适用于长列表或滚动容器的顶部提示。
+### Overlay
 
-```tsx
-<FineProgressiveBlur
-  blur={32}
-  height={140}
-  color="rgba(255,255,255,0.85)"
-  position="top"
-  border={12}
->
-  <div className="h-96 overflow-auto bg-white rounded-xl p-6">
-    {/* 长列表内容 */}
-  </div>
-</FineProgressiveBlur>
-```
+| 属性              | 类型                                | 默认值   | 说明                            |
+| ----------------- | ----------------------------------- | -------- | ------------------------------- |
+| `direction`       | `"top" \| "bottom"`                 | 必填     | 覆盖的边缘                      |
+| `height`          | `number \| string`                  | `100`    | 覆盖高度                        |
+| `maxRadius`       | `number`                            | `24`     | 外侧最大高斯标准差，单位 CSS px |
+| `captureStrategy` | `"static" \| "scrollend" \| "live"` | `"live"` | 纹理更新时机                    |
+| `onMetrics`       | `(metrics) => void`                 | —        | 图集、上传与渲染指标            |
 
-#### 2. 底部透明模糊
+## 后端策略
 
-适用于图片底部渐隐效果。
+自动优先级为 **HTML-in-Canvas → Rito → CSS**，其中 CSS 有严格的能力门槛：
 
-```tsx
-<FineProgressiveBlur blur={16} height={100} color="#ffffff00" position="bottom">
-  <img src="/image.jpg" alt="Demo" className="w-full" />
-</FineProgressiveBlur>
-```
+- **能创建 WebGL2 上下文**：优先 HTML-in-Canvas，原生 API 不可用、布局不适用或原生路径失败时使用 Rito。显式选择 `rito` 可跳过原生尝试。
+- **不能创建 WebGL2 上下文**：启用配置的 CSS/透明保底，不启动纹理后端。
+- **WebGL2 可用但 Rito 绘制失败**：释放呈现 Canvas，保留原生正文，报告 `unavailable`；不启用 CSS。初始化等待、滚动等待和运行中的 context loss 同样不会启用 CSS。
 
-## 🧮 核心算法原理
+能力检查只在客户端执行一次；不会将后续的渲染错误当成设备缺少 WebGL。服务器输出在能力检测前保持 `pending`，不会先渲染 CSS 再切换。
 
-### 1. 分层策略
+演示页提供自动、HTML-in-Canvas 和 Rito 切换，不提供强制 CSS 选项。下方图片区域的普通 CSS blur 是视觉参考，独立于 Provider 的保底策略。
 
-FineProgressiveBlur 采用创新的两阶段分层算法：
+SnapDOM、快照采集器与公开的 `captureAdapter` / Canvas adapter 接口已移除。原生路径面向块级 Provider，Overlay 应为直接子元素；Rito 的支持范围见 [接入说明](docs/rito-renderer.md)。原生能力依赖实验性的 [HTML-in-Canvas API](https://github.com/WICG/html-in-canvas)。
 
-- **细腻阶段**：前 N 层（通常 15 层），每层固定 2px 高度，提供精细的过渡效果
-- **粗糙阶段**：后续层按平方递增（4px, 9px, 16px...），快速覆盖剩余高度
+### CSS 保底
 
-```typescript
-// 细腻阶段：前 N 层每层 2px
-if (i <= fineLayers) {
-  height -= 2;
-}
-// 粗糙阶段：按 j² 递增
-else {
-  const j = i - fineLayers;
-  height -= Math.pow(j + 1, 2);
-}
-```
+使用 Layered Backdrop-Filter Stack，每个边缘最多 8 层不可点击的绝对定位元素，半径从 `Rmax / 128` 逐层翻倍到 `Rmax`。每层拥有重叠的 `mask-image`，顶部与底部互为镜像。零半径不创建滤镜层；不为容器增加整体 mask 或透明度动画。
 
-### 2. 高斯模糊分配
+## 内容更新
 
-基于高斯模糊的方差可加性原理：
+`live` 无固定采样间隔。事件合并到动画帧，只保留一个在途任务和最新待处理变化；页面不可见时暂停。
 
-$$\sigma_{\text{total}}^2 = \sum_{i=1}^{n} \sigma_i^2$$
+- 原生路径监听浏览器的 `paint.changedElements`，静止时不定时请求快照。
+- Rito 读取浏览器布局并用提取的 Canvas 绘制器缓存正文块。缓存内普通滚动只改变 GPU 取样窗口，不重画或上传正文。
+- 内容变化检查受影响块；候选纹理在 GPU 比较全部像素，相同则跳过视口与模糊更新。比较有候选上传、一个比较 pass 和异步查询成本，但没有 CPU 图像读回。
+- 选区与焦点在 GPU 合成；嵌套滚动和 sticky 内容需要更新受影响的缓存块。动态 Canvas 可显式调用 `refresh()`。
 
-每层的模糊强度与其覆盖进度成正比，确保最终合成模糊强度等于设定值：
+`scrollend` 在滚动停止后更新模糊，等待时显示正文。`static` 只在初始化、尺寸变化和手动刷新时更新；过期的模糊隐藏到下一次更新。
 
-```typescript
-const sumPSq = progressList.reduce((acc, p) => acc + p * p, 0);
-const scale = sumPSq > 0 ? blur / Math.sqrt(sumPSq) : 0;
-const perLayerBlur = progressList.map((p) => scale * p);
-```
+## 模糊管线
 
-### 3. 颜色渐变
+1. Provider 共用一个 WebGL2 场景与正文纹理，边缘从 GPU 场景裁剪，不向 CPU 读回。
+2. 按局部标准差与 DPR 将边缘拆成最多 8 个 Atlas band，分辨率从 1× 到 1/128×。保留混合区及 3σ 邻域，裁切对齐真实的降采样纹素，避免拉伸；零半径保持原始分辨率。
+3. 将 sRGB 场景转换为编码 sRGB、预乘 Alpha 的 RGBA8 缓冲，再逐级降采样。奇数尺寸按源像素覆盖面积滤波，减少细线混叠。各 band 共享降采样结果。
+4. 渐变模式先纵向、再横向高斯卷积，使每一行的两个方向使用相同 σ，避免纵向拉丝。合并相邻权重后每轴最多 13 次双线性采样，扣除重采样引入的近似方差。固定半径在 CPU 预计算权重；原始分辨率时将纵向卷积合入最终输出。
+5. 较粗一级的 σ 从 2 降到 1.5 texel 时平滑混入下一档。最终通常读取 1–2 次，并以不透明颜色覆盖正文，避免二次混合；纹理与参数不变时复用卷积结果。
 
-仅第一层应用线性渐变，其他层使用透明色，通过叠加实现自然的颜色过渡：
+`maxRadius` 与 [CSS blur()](https://www.w3.org/TR/filter-effects-1/#funcdef-filter-blur) 同样表示高斯标准差。无随机采样噪点，使用 sRGB 混合以接近 CSS；降采样与浏览器实现仍会带来偏差。见 [CSS 模糊校准](docs/css-blur-alignment.md) 与 [Apple 模糊调研](docs/apple-blur-research.md)。
 
-## 🔧 技术栈
+`onMetrics` 的 `savedRatio` 只比较边缘图集和原始条带，不代表总显存或上传节省。总资源另含正文、降采样与高斯中间缓冲，Rito 的内容块估算预算为 64 MiB。计时是 JS 提交耗时，不是 GPU 完成时间。Canvas 2D 的首次与变更上传仍然存在，不承诺浏览器内部零拷贝。
 
-- **框架**: [Next.js 16.0.1](https://nextjs.org/) (App Router)
-- **前端库**: [React 19.2.0](https://react.dev/)
-- **语言**: [TypeScript 5.x](https://www.typescriptlang.org/)
-- **样式**: [Tailwind CSS 4.x](https://tailwindcss.com/)
-- **编译优化**: React Compiler (Babel Plugin)
+## 图片模糊对照
 
-## 📊 性能特点
+演示页 `#image-blur-comparison` 使用同一张本地照片、裁切与边缘延展，并排比较组件算法与普通 CSS `filter: blur()`。固定半径 0–48px，没有渐变或空间分区；「查看原图」同步归零。
 
-- ✅ 使用原生 CSS `backdrop-filter`
-- ✅ 基于层数优化算法，避免过度分层
-- ✅ 纯 CSS 实现，无 JavaScript 运行时开销
+半径变化复用源纹理，跨降采样档位只在 GPU 重建图集；图片加载、尺寸/DPR 变化和上下文恢复时才重新上传图片。WebGL2 不可用时左侧明确显示不可用，右侧 CSS 参考图仍可查看。见 [图片署名](public/images/ATTRIBUTION.md)。
 
-## 📝 注意事项
+## 许可证
 
-1. **浏览器兼容性**：`backdrop-filter` 需要现代浏览器支持（Chrome 76+, Safari 9+, Firefox 103+）
-2. **性能考虑**：模糊层数过多可能影响性能，建议 `height` 不要设置过大（<300px）
-3. **颜色透明度**：如果未指定透明度，默认使用 0.85
-4. **圆角匹配**：`border` 参数应与内容容器的圆角保持一致，以获得最佳视觉效果
-
-## 🔮 使用场景
-
-- 📜 **长列表滚动提示** - 顶部/底部模糊暗示可滚动内容
-- 🖼️ **图片渐隐效果** - 图片边缘平滑过渡到背景
-- 🎴 **卡片设计** - 强调卡片中心内容
-- 📱 **移动端列表** - 提升滚动体验
-- 🎨 **视觉层次** - 创建内容的空间深度感
-
-## 📄 许可证
-
-本项目采用 MIT 许可证。
-
----
-
-<div align="center">
-
-**如果这个项目对你有帮助，请给一个 ⭐️ Star！**
-
-</div>
+仓库原有代码使用 MIT。Rito 提取模块沿用 **AGPL-3.0-only**；上游提交、提取清单、本地改动与完整许可证保存在 [UPSTREAM.md](components/gradient-blur/rito/vendor/UPSTREAM.md) 和 [LICENSE](components/gradient-blur/rito/vendor/LICENSE)。

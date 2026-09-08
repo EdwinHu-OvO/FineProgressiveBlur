@@ -1,20 +1,78 @@
-@import "tailwindcss";
-
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --page-bg: #f2f5f7;
+  --surface: #fbfcfd;
+  --surface-subtle: #edf1f4;
+  --ink: #18212b;
+  --ink-muted: #687586;
+  --line: rgb(31 45 61 / 0.12);
+  --accent: #607a99;
+  --accent-strong: #4d6989;
+  --accent-soft: #e2e9f1;
+  --positive: #587866;
+  --focus: #365f91;
+  --page-max: 1180px;
+  --page-gutter: clamp(16px, 3vw, 32px);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
+html {
+  background: var(--page-bg);
+}
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* next/font defines its variables on body; resolve aliases in that scope. */
+  --font-body:
+    var(--font-geist-sans), "PingFang SC", "Noto Sans CJK SC", system-ui,
+    sans-serif;
+  --font-mono-ui: var(--font-geist-mono), "SFMono-Regular", Consolas, monospace;
+  min-width: 320px;
+  margin: 0;
+  background: var(--page-bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input {
+  color: inherit;
+  font: inherit;
+}
+
+button,
+summary,
+input[type="range"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: #cbd9e7;
+  color: #102033;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  [data-gradient-blur-overlay] {
+    display: none;
+  }
 }
