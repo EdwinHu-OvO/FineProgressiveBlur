@@ -8,6 +8,7 @@ import { OVERLAY_SLOT } from "./native/native-host";
 import { useSurfaceOverlay } from "./engine/useSurfaceOverlay";
 
 export function GradientBlurOverlay({
+  algorithm: overlayAlgorithm,
   captureStrategy = "live",
   className,
   direction,
@@ -17,8 +18,13 @@ export function GradientBlurOverlay({
   style,
   ...overlayProps
 }: GradientBlurOverlayProps) {
-  const { fallback, surface, activeBackend, algorithm } =
-    useGradientBlurContext();
+  const {
+    fallback,
+    surface,
+    activeBackend,
+    algorithm: providerAlgorithm,
+  } = useGradientBlurContext();
+  const algorithm = overlayAlgorithm ?? providerAlgorithm;
   const cssOnly = activeBackend === "css";
   const overlayRef = useRef<HTMLDivElement>(null);
   const surfacePhase = useSurfaceOverlay({

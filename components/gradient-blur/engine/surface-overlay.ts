@@ -108,6 +108,7 @@ export class SurfaceOverlay {
         adapterId: frame.adapterId ?? "html-in-canvas",
         atlas,
         atlasBuildMs,
+        sampleCount: this.options.algorithm === "compact9" ? 9 : 13,
         captureCount: frame.captureCount ?? ++this.count,
         captureMs: frame.captureMs,
         direction,

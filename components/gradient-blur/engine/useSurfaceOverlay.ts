@@ -55,6 +55,6 @@ export function useSurfaceOverlay({
   useEffect(() => {
     const element = overlayRef.current;
     if (element) surface?.setRadius(element, maxRadius);
-  }, [surface, overlayRef, direction, strategy, maxRadius]);
+  }, [surface, overlayRef, direction, strategy, maxRadius, algorithm]);
   return phase;
 }

@@ -23,6 +23,7 @@ interface ReadyMetricOptions {
   sourceWidth: number;
   strategy: CaptureStrategy;
   uploadMs: number;
+  sampleCount?: number;
 }
 
 export function createReadyMetrics({
@@ -41,6 +42,7 @@ export function createReadyMetrics({
   sourceWidth,
   strategy,
   uploadMs,
+  sampleCount = GRADIENT_BLUR_SAMPLE_COUNT,
 }: ReadyMetricOptions): GradientBlurMetrics {
   const atlasPixels = atlas.width * atlas.height;
   const sourcePixels = sourceWidth * sourceHeight;
@@ -58,7 +60,7 @@ export function createReadyMetrics({
     sourceBytes: sourcePixels * 4,
     savedRatio: 1 - atlasPixels / sourcePixels,
     pixelRatio,
-    sampleCount: GRADIENT_BLUR_SAMPLE_COUNT,
+    sampleCount,
     renderCount,
     renderFps,
     liveCapture,

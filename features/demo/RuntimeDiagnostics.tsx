@@ -72,7 +72,10 @@ export function RuntimeDiagnostics({
         />
         <Metric label="Capture" value={formatTime(captureMs)} />
         <Metric label="Texture submit" value={formatTime(uploadMs)} />
-        <Metric label="Kernel" value="Gaussian ≤13 / axis" />
+        <Metric
+          label="Kernel"
+          value={`Gaussian ≤${latest?.sampleCount ?? 13} / axis`}
+        />
         <Metric
           label="GPU render"
           value={strategy === "live" ? "on content change" : "on demand"}

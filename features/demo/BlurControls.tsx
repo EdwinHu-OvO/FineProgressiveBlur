@@ -79,6 +79,8 @@ export function BlurControls({
       <fieldset className={styles.fieldset}>
         <legend>模糊算法</legend>
         <select
+          id="blur-algorithm"
+          aria-label="模糊算法"
           className={styles.backendSelect}
           value={algorithm}
           onChange={(event) =>
@@ -152,7 +154,15 @@ export function BlurControls({
       )}
 
       <div className={styles.renderFact}>
-        <span>{cssOnly ? (maxRadius > 0 ? CSS_BLUR_LAYERS : 0) : 13}</span>
+        <span>
+          {cssOnly
+            ? maxRadius > 0
+              ? CSS_BLUR_LAYERS
+              : 0
+            : algorithm === "compact9"
+              ? 9
+              : 13}
+        </span>
         <p>
           {cssOnly ? "层 backdrop-filter / 边缘" : "次双线性采样 / 轴（至多）"}
         </p>

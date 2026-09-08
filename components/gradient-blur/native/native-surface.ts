@@ -35,10 +35,6 @@ export class NativeSurface {
       ? [sourceBeforeHost.scrollLeft, sourceBeforeHost.scrollTop]
       : null;
     this.host = new NativeHost(options.provider);
-    if (sourceBeforeHost && scrollBeforeHost) {
-      sourceBeforeHost.scrollLeft = scrollBeforeHost[0];
-      sourceBeforeHost.scrollTop = scrollBeforeHost[1];
-    }
     try {
       this.scene = new NativeScene(this.host.canvas);
     } catch (error) {
@@ -73,6 +69,13 @@ export class NativeSurface {
       1500,
     );
     this.request("initial");
+    // The drawable has no layout size until request() resizes the host.
+    // Restoring earlier clamps scroll offsets to zero in Chromium.
+    if (sourceBeforeHost && scrollBeforeHost) {
+      sourceBeforeHost.scrollLeft = scrollBeforeHost[0];
+      sourceBeforeHost.scrollTop = scrollBeforeHost[1];
+      this.host.canvas.requestPaint();
+    }
   }
 
   register(options: SurfaceOverlayOptions): () => void {

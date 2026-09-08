@@ -133,18 +133,7 @@ export class GaussianBlur {
           gl.uniform1fv(u.offsets, kernel.offsets);
           gl.uniform1i(u.pairs, kernel.pairs);
         } else {
-          const density =
-            axis === 0
-              ? band.width / view.width
-              : band.height /
-                ((band.captureEnd - band.captureStart) * view.height);
-          const scale = axis === 0 ? scaleX : scaleY;
-          const kernel = this.kernel(
-            axis,
-            profile.maxRadius * density,
-            Math.max(0, 1 - scale * scale) / 4,
-          );
-          gl.uniform1i(u.pairs, kernel.pairs);
+          gl.uniform1i(u.pairs, this.currentMaxPairs);
         }
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       }

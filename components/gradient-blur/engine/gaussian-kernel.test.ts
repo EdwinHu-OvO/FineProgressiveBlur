@@ -31,3 +31,20 @@ describe("CSS Gaussian bilinear kernel", () => {
     }
   });
 });
+
+describe("experimental compact Gaussian", () => {
+  it("normalizes truncated tails and preserves zero radius", () => {
+    for (const sigma of [0, 0.5, 1, 2, 3, 4]) {
+      const compact = createGaussianKernel(sigma, 0, 4);
+      const mass =
+        compact.weights[0] +
+        2 * compact.weights.slice(1).reduce((sum, weight) => sum + weight, 0);
+      expect(compact.pairs).toBeLessThanOrEqual(4);
+      expect(mass).toBeCloseTo(1, 6);
+    }
+    expect(createGaussianKernel(0, 0, 4).pairs).toBe(0);
+    expect(createGaussianKernel(1, 0, 4)).toEqual(createGaussianKernel(1));
+    expect(createGaussianKernel(4, 0, 4).pairs).toBe(4);
+    expect(createGaussianKernel(4).pairs).toBe(6);
+  });
+});
