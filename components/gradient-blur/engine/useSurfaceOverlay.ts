@@ -38,9 +38,37 @@ export function useSurfaceOverlay({
   strategy,
   onMetrics,
 }: SurfaceOverlayHookOptions): GradientBlurPhase {
+  // Callers commonly create curve literals inline. Compare their values rather
+  // than object identity so diagnostic renders do not re-register the overlay.
+  const curveX1 = blurCurve?.x1;
+  const curveY1 = blurCurve?.y1;
+  const curveX2 = blurCurve?.x2;
+  const curveY2 = blurCurve?.y2;
+  const stableBlurCurve = useMemo(
+    () =>
+      curveX1 === undefined ||
+      curveY1 === undefined ||
+      curveX2 === undefined ||
+      curveY2 === undefined
+        ? undefined
+        : { x1: curveX1, y1: curveY1, x2: curveX2, y2: curveY2 },
+    [curveX1, curveY1, curveX2, curveY2],
+  );
   const registration = useMemo(
-    () => ({ surface, direction, algorithm, blurCurve, strategy }),
-    [surface, direction, algorithm, blurCurve, strategy],
+    () => ({
+      surface,
+      direction,
+      algorithm,
+      blurCurve: stableBlurCurve,
+      strategy,
+    }),
+    [
+      surface,
+      direction,
+      algorithm,
+      strategy,
+      stableBlurCurve,
+    ],
   );
   const [status, setStatus] = useState<{
     registration: typeof registration;
@@ -91,7 +119,10 @@ export function useSurfaceOverlay({
     strategy,
     maxRadius,
     algorithm,
-    blurCurve,
+    curveX1,
+    curveY1,
+    curveX2,
+    curveY2,
   ]);
   return status?.registration === registration ? status.phase : "capturing";
 }
