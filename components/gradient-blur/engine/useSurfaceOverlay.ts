@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import type {
   CaptureStrategy,
   GradientBlurDirection,
@@ -31,32 +38,50 @@ export function useSurfaceOverlay({
   strategy,
   onMetrics,
 }: SurfaceOverlayHookOptions): GradientBlurPhase {
-  const [phase, setPhase] = useState<GradientBlurPhase>("capturing");
+  const registration = useMemo(
+    () => ({ surface, direction, algorithm, blurCurve, strategy }),
+    [surface, direction, algorithm, blurCurve, strategy],
+  );
+  const [status, setStatus] = useState<{
+    registration: typeof registration;
+    phase: GradientBlurPhase;
+  } | null>(null);
   const callback = useRef(onMetrics);
   useEffect(() => {
     callback.current = onMetrics;
   }, [onMetrics]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = overlayRef.current;
-    if (!surface || !element) return;
-    return surface.register({
+    if (!element) return;
+    const resetFallback = () =>
+      element.style.removeProperty("--gradient-blur-fallback-display");
+    resetFallback();
+    const { surface, ...profile } = registration;
+    if (!surface) return;
+    let active = true;
+    const unregister = surface.register({
+      ...profile,
       element,
-      direction,
       maxRadius: 0,
-      algorithm,
-      blurCurve,
-      strategy,
       onPhase: (nextPhase) => {
+        if (!active) return;
+        // Switch in the paint callback so CSS and WebGL never blur together
+        // while waiting for React to commit the diagnostic phase update.
         element.style.setProperty(
-          "--gradient-blur-ready",
-          nextPhase === "ready" ? "1" : "0",
+          "--gradient-blur-fallback-display",
+          nextPhase === "ready" ? "none" : "block",
         );
-        setPhase(nextPhase);
+        setStatus({ registration, phase: nextPhase });
       },
       onMetrics: (metrics) => callback.current?.(metrics),
     });
-  }, [surface, overlayRef, direction, strategy, algorithm, blurCurve]);
-  useEffect(() => {
+    return () => {
+      active = false;
+      unregister();
+      resetFallback();
+    };
+  }, [registration, overlayRef]);
+  useLayoutEffect(() => {
     const element = overlayRef.current;
     if (element) surface?.setRadius(element, maxRadius);
   }, [
@@ -68,5 +93,5 @@ export function useSurfaceOverlay({
     algorithm,
     blurCurve,
   ]);
-  return phase;
+  return status?.registration === registration ? status.phase : "capturing";
 }

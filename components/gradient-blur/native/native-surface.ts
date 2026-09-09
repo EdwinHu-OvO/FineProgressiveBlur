@@ -145,6 +145,7 @@ export class NativeSurface {
     this.host.canvas.removeEventListener("webglcontextlost", this.contextLost);
     this.detachScroll();
     document.removeEventListener("visibilitychange", this.visibility);
+    for (const overlay of this.overlays) overlay.invalidate();
     // React owns layer cleanup; releasing shared scene storage is independent.
     this.scene.dispose();
     this.host.dispose();

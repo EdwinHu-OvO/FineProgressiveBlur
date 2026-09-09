@@ -90,7 +90,8 @@ export function RuntimeDiagnostics({
             <AtlasDiagram metrics={latest} />
             <p>
               按局部标准差与 DPR 选择 1×、½、¼ 及更低分辨率，使每轴卷积至多读取
-              {latest?.sampleCount ?? 9} 次。分区保留 3σ 邻域，接缝平滑混合；零半径使用原始分辨率。
+              {latest?.sampleCount ?? 9} 次。分区保留 3σ
+              邻域，接缝平滑混合；零半径使用原始分辨率。
             </p>
           </div>
           <div>
@@ -147,13 +148,14 @@ export function RuntimeDiagnostics({
               <p>
                 支持 HTML-in-Canvas 的浏览器会让 Provider 共用一个 WebGL
                 上下文，DOM 纹理直接进入 GPU，再由 GPU 裁剪图集。原生 API
-                不可用或失败时改用 Rito；只有 WebGL2 不可用时使用 CSS 保底。
+                不可用或失败时改用 Rito。默认启用 CSS 保底，WebGL
+                首帧就绪后关闭，管线不可用时恢复。
               </p>
             )}
             {activeBackend === "rito" ? (
               <p>
                 缓存预算 64 MiB，长文档按需替换旧块。复杂滤镜、嵌入控件、 Shadow
-                DOM 等暂不支持的内容会保留原生正文并报告不可用状态。Atlas saved
+                DOM 等暂不支持的内容会保留原生正文并恢复 CSS 保底。Atlas saved
                 仅统计边缘图集， 不包含正文缓存；提取模块保留上游 AGPL-3.0-only
                 许可证。
               </p>

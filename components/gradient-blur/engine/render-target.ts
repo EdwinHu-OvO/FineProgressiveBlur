@@ -17,31 +17,45 @@ export class RenderTarget {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-    gl.framebufferTexture2D(
-      gl.FRAMEBUFFER,
-      gl.COLOR_ATTACHMENT0,
-      gl.TEXTURE_2D,
-      texture,
-      0,
-    );
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   resize(width: number, height: number): void {
     if (this.width === width && this.height === height) return;
-    this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-    this.gl.texImage2D(
-      this.gl.TEXTURE_2D,
+    const gl = this.gl;
+    gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
       0,
-      this.gl.RGBA8,
+      gl.RGBA8,
       width,
       height,
       0,
-      this.gl.RGBA,
-      this.gl.UNSIGNED_BYTE,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
       null,
     );
+    // Some Android WebViews retain an incomplete attachment when the texture
+    // is attached before storage exists. Attach again after every allocation.
+    const previousDrawFramebuffer = gl.getParameter(
+      gl.DRAW_FRAMEBUFFER_BINDING,
+    ) as WebGLFramebuffer | null;
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.framebuffer);
+    try {
+      gl.framebufferTexture2D(
+        gl.DRAW_FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        this.texture,
+        0,
+      );
+      const status = gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER);
+      if (status !== gl.FRAMEBUFFER_COMPLETE)
+        throw new Error(
+          `Blur render target is incomplete: 0x${status.toString(16)}`,
+        );
+    } finally {
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, previousDrawFramebuffer);
+    }
     this.width = width;
     this.height = height;
   }

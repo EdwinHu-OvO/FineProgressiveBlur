@@ -107,9 +107,7 @@ export const GradientBlurProvider = forwardRef<
   useImperativeHandle(forwardedRef, () => ({ refresh }), [refresh]);
   const activeBackend = resolveBackend({
     webgl,
-    nativePending,
     nativeReady: Boolean(nativeSurface),
-    ritoPending: enableRito && rito.pending,
     ritoReady: Boolean(ritoSurface),
   });
   const backendCallback = useRef(onBackendChange);

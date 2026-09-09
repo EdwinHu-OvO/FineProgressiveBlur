@@ -28,8 +28,8 @@ export function CssRuntimeDiagnostics({ maxRadius }: { maxRadius: number }) {
           <div>
             <h2>浏览器直接绘制</h2>
             <p>
-              当前设备无法创建 WebGL2 上下文，启用 CSS
-              保底。各层均穿透指针事件，滚动和正文交互保持原样。
+              默认使用 CSS 保底，WebGL 管线完成首帧后关闭 CSS；
+              管线不可用时继续由浏览器绘制。各层均穿透指针事件，滚动和正文交互保持原样。
             </p>
           </div>
         </div>

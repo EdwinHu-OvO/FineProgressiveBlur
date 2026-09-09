@@ -16,6 +16,8 @@ export function CssGradientBlurFallback({
     <div
       data-gradient-blur-fallback=""
       style={{
+        // The renderer disables the entire stack only after drawing valid pixels.
+        display: "var(--gradient-blur-fallback-display, block)",
         inset: 0,
         position: "absolute",
         pointerEvents: "none",

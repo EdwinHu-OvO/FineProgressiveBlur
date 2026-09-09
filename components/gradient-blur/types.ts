@@ -11,19 +11,11 @@ export const GRADIENT_BLUR_SAMPLE_COUNT = 9;
 export type CaptureStrategy = "static" | "scrollend" | "live";
 export type GradientBlurBackend = "auto" | "html-in-canvas" | "rito";
 export type GradientBlurActiveBackend =
-  | "pending"
-  | "html-in-canvas"
-  | "rito"
-  | "css"
-  | "unavailable";
+  "pending" | "html-in-canvas" | "rito" | "css" | "unavailable";
 export type GradientBlurDirection = "top" | "bottom";
 export type GradientBlurPhase = "idle" | "capturing" | "ready" | "fallback";
 export type CaptureReason =
-  | "initial"
-  | "resize"
-  | "scrollend"
-  | "live"
-  | "manual";
+  "initial" | "resize" | "scrollend" | "live" | "manual";
 export type GradientBlurAlgorithm = "compact9";
 
 /** Cubic-bezier easing parameters, matching CSS cubic-bezier(x1, y1, x2, y2). */
@@ -82,6 +74,7 @@ export interface GradientBlurProviderProps extends Omit<
   blurCurve?: GradientBlurBezier;
   onBackendChange?: (backend: GradientBlurActiveBackend) => void;
   maxDevicePixelRatio?: number;
+  /** Visual baseline until an overlay has a valid WebGL frame. */
   fallback?: "css" | "transparent";
 }
 

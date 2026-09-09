@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 
 let available: boolean | undefined;
 
-/** Probe once: a later renderer failure/context loss must not enable CSS. */
+/** Probe once; overlay readiness independently controls the CSS fallback. */
 export function supportsWebGL2(): boolean {
   if (typeof document === "undefined") return false;
   if (available !== undefined) return available;

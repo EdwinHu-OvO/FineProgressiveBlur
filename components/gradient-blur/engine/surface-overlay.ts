@@ -89,6 +89,7 @@ export class SurfaceOverlay {
     const cacheHit = Boolean(cacheKey && this.cachedRenderers.has(cacheKey));
     const renderer = cacheKey ? this.rendererFor(cacheKey) : this.renderer;
     element.dataset.gradientBlurCache = cacheHit ? "hit" : "miss";
+    const wasValid = this.valid;
     if (reason && !cacheHit) {
       const startedAt = performance.now();
       const sourceWidth = Math.max(1, Math.round(width * pixelRatio));
@@ -138,11 +139,12 @@ export class SurfaceOverlay {
           (frame.sourceUploadMs ?? 0) + performance.now() - uploadStartedAt,
       });
       this.pending = null;
-      if (!this.valid) this.options.onPhase("ready");
       this.valid = true;
     }
-    if (this.draw(canvas, frame.sourceBounds, renderer))
+    if (this.draw(canvas, frame.sourceBounds, renderer)) {
+      if (!wasValid) this.options.onPhase("ready");
       this.metrics.record(timestamp);
+    }
     this.metrics.publish(Boolean(reason && reason !== "live"), timestamp);
   }
 
@@ -182,6 +184,7 @@ export class SurfaceOverlay {
   }
 
   dispose(): void {
+    this.options.onPhase("fallback");
     this.renderer.dispose();
     for (const renderer of this.cachedRenderers.values()) renderer.dispose();
     this.cachedRenderers.clear();
@@ -198,8 +201,7 @@ export class SurfaceOverlay {
     this.cachedRenderers.set(cacheKey, renderer);
     while (this.cachedRenderers.size > 3) {
       const oldest = this.cachedRenderers.entries().next().value as
-        | [string, GradientBlurRenderer]
-        | undefined;
+        [string, GradientBlurRenderer] | undefined;
       if (!oldest) break;
       oldest[1].dispose();
       this.cachedRenderers.delete(oldest[0]);

@@ -2,23 +2,18 @@ import { describe, expect, it } from "vitest";
 import { resolveBackend } from "./backend-policy";
 
 const idle = {
-  nativePending: false,
   nativeReady: false,
-  ritoPending: false,
   ritoReady: false,
 };
 
-describe("backend fallback policy", () => {
-  it("waits for capability detection before rendering any fallback", () => {
-    expect(resolveBackend({ ...idle, webgl: null })).toBe("pending");
+describe("progressive backend enhancement", () => {
+  it("starts with CSS before client capability detection", () => {
+    expect(resolveBackend({ ...idle, webgl: null })).toBe("css");
   });
-  it("uses CSS only when WebGL2 is unavailable", () => {
+  it("keeps CSS when WebGL2 is unavailable", () => {
     expect(resolveBackend({ ...idle, webgl: false })).toBe("css");
   });
   it("prefers native and then Rito", () => {
-    expect(resolveBackend({ ...idle, webgl: true, nativePending: true })).toBe(
-      "pending",
-    );
     expect(
       resolveBackend({
         ...idle,
@@ -27,14 +22,21 @@ describe("backend fallback policy", () => {
         ritoReady: true,
       }),
     ).toBe("html-in-canvas");
-    expect(resolveBackend({ ...idle, webgl: true, ritoPending: true })).toBe(
-      "pending",
-    );
     expect(resolveBackend({ ...idle, webgl: true, ritoReady: true })).toBe(
       "rito",
     );
   });
-  it("does not use CSS for renderer failures on a WebGL2 device", () => {
-    expect(resolveBackend({ ...idle, webgl: true })).toBe("unavailable");
+  it("keeps CSS until a surface is ready, including renderer failures", () => {
+    expect(resolveBackend({ ...idle, webgl: true })).toBe("css");
+  });
+  it("returns to CSS after losing the active surface", () => {
+    const state = { ...idle, webgl: true, ritoReady: true };
+    expect(resolveBackend(state)).toBe("rito");
+    expect(resolveBackend({ ...state, ritoReady: false })).toBe("css");
+  });
+  it("requires WebGL2 support before accepting a ready surface", () => {
+    expect(resolveBackend({ ...idle, webgl: false, ritoReady: true })).toBe(
+      "css",
+    );
   });
 });

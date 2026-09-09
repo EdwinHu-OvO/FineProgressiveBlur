@@ -58,7 +58,7 @@ export function BackendControl({
       <p className={styles.strategyNote} role="status">
         当前：{LABELS[activeBackend]}。
         {activeBackend === "css"
-          ? "WebGL2 不可用，启用分层 CSS 保底。"
+          ? "分层 CSS 保底已启用，WebGL 管线就绪后自动接管。"
           : activeBackend === "unavailable"
             ? "当前内容无法绘制，保留原生正文。切换后端可重试。"
             : activeBackend === "rito"

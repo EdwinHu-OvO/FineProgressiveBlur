@@ -1,6 +1,6 @@
 # Fine Progressive Blur：Agent 交接记录
 
-更新时间：2026-09-08  
+更新时间：2026-09-09\
 当前分支：`main`  
 最近提交：
 
@@ -16,10 +16,10 @@
 用户在本轮对话中逐步确定了以下约束：
 
 1. 最初调研过 html2canvas、html-in-canvas、Rito 和 SnapDOM，后来明确要求剔除 SnapDOM。当前代码和依赖中不应重新引入 SnapDOM、html2canvas 或公开的通用 DOM 快照 adapter。
-2. 自动后端优先级固定为 **HTML-in-Canvas → Rito → CSS**。
-3. CSS 只用于设备无法创建 WebGL2 上下文时的保底。只要设备能创建 WebGL2，即使原生 API、Rito 内容解析或 WebGL context 在运行中失败，也不能挂载 CSS 模糊；失败状态应为 `unavailable`，保留原生正文。
+2. 采用渐进式增强：首屏默认 CSS，WebGL2 可用时尝试 **HTML-in-Canvas → Rito**。
+3. 2026-09-09 用户要求取代原有 CSS 能力门槛。CSS 在首屏、初始化及没有有效 WebGL 帧时提供保底；Overlay 成功绘制首帧后以 `display: none` 同步关闭 CSS，失败/context loss 时恢复保底并保留原生正文。
 4. Demo 可切换自动、HTML-in-Canvas 和 Rito；不提供强制 CSS 后端。图片对比区里的普通 CSS `blur()` 是视觉参考，不能删除，也不等同于 Provider fallback。
-5. 渐变模糊采用多层 CSS 阶梯合成只作为 CSS 保底：每个边缘最多 8 个不可点击层，半径指数递增，使用重叠 `mask-image`。CSS 保底不应在 WebGL 等待、滚动更新等待或渲染错误时短暂显示。
+5. CSS 保底每个边缘最多 8 个不可点击层，半径指数递增，使用重叠 `mask-image`。失效帧恢复 CSS，直到新帧有效；显式 `fallback="transparent"` 时不创建 CSS 层。
 6. `live` 模式不再使用固定采样频率限制。更新应由纹理内容变化、浏览器 paint 通知或 Rito 内容事件触发，并合并到动画帧；纹理内容没有变化时不应重复上传和重做模糊。
 7. Demo 必须保留实验算法切换，最终算法尚未定案。稳定算法作为默认和参考，实验算法只用于性能/画质对比，不要在没有基准结果前替换默认值。
 8. 模糊半径需要尽可能对齐 CSS `blur()` 的高斯标准差，减少噪点、采样率分区断层和纵向拉丝。当前管线已采用 sRGB、确定性高斯和 Y→X 渐变卷积顺序。
@@ -33,7 +33,7 @@
 - [backend-policy.ts](../components/gradient-blur/engine/backend-policy.ts)：唯一的后端决策函数。
 - [useNativeSurface.ts](../components/gradient-blur/native/useNativeSurface.ts)：HTML-in-Canvas 生命周期。
 - [useRitoSurface.ts](../components/gradient-blur/rito/useRitoSurface.ts)：Rito 生命周期。
-- [GradientBlurOverlay.tsx](../components/gradient-blur/GradientBlurOverlay.tsx)：只在 active backend 为 `css` 且 CSS fallback 配置为 `css` 时创建 CSS 层。
+- [GradientBlurOverlay.tsx](../components/gradient-blur/GradientBlurOverlay.tsx)：默认输出 CSS 层；`useSurfaceOverlay` 根据当前注册实例的绘制状态控制滤镜栈的显示。
 
 `GradientBlurBackend` 目前是：
 
@@ -49,12 +49,14 @@
 
 决策规则：
 
-- `webgl === null`：`pending`，不先渲染 CSS。
+- `webgl === null`：`css`，服务器输出即包含 CSS 层。
 - `webgl === false`：`css`，只启动 CSS fallback，不创建纹理后端。
 - `webgl === true` 且原生 surface 就绪：`html-in-canvas`。
-- `webgl === true` 且原生不可用/失败，Rito 正在初始化：`pending`。
+- `webgl === true` 且纹理后端正在初始化：`css`。
 - `webgl === true` 且 Rito 就绪：`rito`。
-- `webgl === true` 且 Rito 失败：`unavailable`，保留原生 DOM，绝不使用 CSS。
+- `webgl === true` 且 Rito 失败：`css`，保留原生 DOM 并恢复配置的保底。
+
+`pending` / `unavailable` 保留在公开类型中以兼容既有调用方，当前后端策略不再发出这两个状态。纹理后端就绪不等于每个 Overlay 的首帧完成；CSS 的关闭由各 Overlay 的成功绘制通知控制。
 
 原生后端切换或卸载时要保存并恢复 source 的 `scrollTop` / `scrollLeft`。这已经在 `NativeSurface` 中处理；修改 shadow host 时必须保留这个行为。
 
@@ -125,6 +127,7 @@ type GradientBlurAlgorithm = "compact9";
 
 ## 历史问题与已采取的修复
 
+- Via 检测到 WebGL2 后模糊区黑色：真机复现为 `RenderTarget` 在纹理存储分配前挂载附件，framebuffer 持续返回 `0x8cd7`。已改为分配后挂载并检查完整性，尺寸未变化时直接复用；生产构建、Via 刷新、滑动及失败保底均已验证。详见 [Via 排查记录](via-webgl-framebuffer.md)。
 - html2canvas/SnapDOM 捕获慢：已移除快照后端，Rito 作为原生路径失败后的 WebGL 后端。
 - `live` 固定 FPS 限制：已删除，改为内容事件、paint 通知和队列背压。
 - 纹理内容未变化仍重复上传：Rito 使用 DOM 脏标记、内容签名和 tile halo，静止时跳过 Canvas 2D、candidate 上传与模糊。
@@ -142,9 +145,9 @@ Rito 是受限的 DOM 绘制器，不是浏览器完整 CSS 的替代品。复�
 在 WebGL2 可用时遇到这些内容，正确行为是：
 
 1. 记录 `data-rito-error`。
-2. active backend 变为 `unavailable`。
+2. active backend 变为 `css`。
 3. 释放 Rito 呈现 Canvas，保留原生正文。
-4. 不挂载 CSS fallback。
+4. 恢复配置的 CSS/透明保底。
 
 当前提取代码位于 `components/gradient-blur/rito/`，其中 `vendor/` 保留上游代码、`LICENSE` 和 `UPSTREAM.md`。不要在没有重新确认许可证边界的情况下大规模改写 vendor 文件。
 
@@ -158,13 +161,14 @@ pnpm lint
 pnpm test
 ```
 
-当前基线：10 个测试文件、44 个测试通过。浏览器验证还覆盖：
+当前基线：12 个测试文件、51 个测试通过。浏览器验证还覆盖：
 
 - Rito 后端初始化、滚动、选区、按钮交互和内容更新。
 - HTML-in-Canvas 原生模式和自动模式的优先级。
 - 原生失败后自动转 Rito。
 - 无 WebGL2 时仅 CSS 保底，且不创建纹理 Canvas。
-- WebGL2 可用但 Rito 不支持内容时 `unavailable` 且无 CSS 层。
+- 禁用 JavaScript 的服务器输出、Rito 初始化等待时显示 CSS；原生/Rito 首帧完成后 CSS 滤镜栈为 `display: none`。
+- WebGL2 可用但 Rito 不支持内容时恢复 CSS 保底。
 - context loss、后端来回切换、滚动位置和窄屏布局。
 - 图片对比区半径变化、原图切换、DPR 1/2 和 CSS 参考图。
 - 运行时固定显示 9 次采样上限。
@@ -177,7 +181,7 @@ pnpm test
 2. 仅当实验算法在目标半径和设备上画质可接受时，才考虑调整默认算法；否则保留为实验选项。
 3. 优先研究 Rito 文档坐标的预模糊多尺度 tile 缓存，先用独立 benchmark 验证滚动收益和显存成本。
 4. 处理缓存失效 halo、sticky/嵌套滚动、选区/焦点和动态 Canvas 的边界。
-5. 继续保持 CSS fallback 的能力门槛：WebGL2 可用时任何错误都不能悄悄进入 CSS。
+5. 保持渐进式增强：有效 WebGL 帧完成后才关闭 CSS；首屏、失效和切换期间保留配置的保底。
 6. 每次改动后同步 README、`docs/rito-renderer.md`、本交接文档和测试基线，避免把历史 SnapDOM 描述重新写回当前架构。
 
 ## 给下一位 agent 的启动提示
@@ -189,4 +193,4 @@ pnpm test
 3. `README.md` 的当前 API/后端策略。
 4. 与任务直接相关的 `docs/apple-blur-research.md`、`docs/css-blur-alignment.md` 或 `docs/rito-renderer.md`。
 
-先运行 `git status --short`、`git log --oneline -5`、`pnpm typecheck`、`pnpm lint`、`pnpm test`，确认基线后再修改。除非用户明确要求，不要重新引入 SnapDOM、通用 DOM 快照 adapter、固定 live FPS 或 WebGL 可用时的 CSS fallback。
+先运行 `git status --short`、`git log --oneline -5`、`pnpm typecheck`、`pnpm lint`、`pnpm test`，确认基线后再修改。除非用户明确要求，不要重新引入 SnapDOM、通用 DOM 快照 adapter 或固定 live FPS。CSS 采用上面的渐进式增强策略。

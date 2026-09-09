@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useRef } from "react";
 import { useGradientBlurContext } from "./GradientBlurProvider";
 import { CssGradientBlurFallback } from "./fallback/CssGradientBlurFallback";
 import type { GradientBlurOverlayProps } from "./types";
@@ -47,10 +47,6 @@ export function GradientBlurOverlay({
       : surface
         ? surfacePhase
         : "unavailable";
-  useLayoutEffect(() => {
-    // Backend switches must not reveal a previous renderer's ready pixels.
-    overlayRef.current?.style.setProperty("--gradient-blur-ready", "0");
-  }, [activeBackend]);
 
   return (
     <div
@@ -74,7 +70,7 @@ export function GradientBlurOverlay({
         zIndex: 2,
       }}
     >
-      {cssOnly && fallback === "css" && (
+      {fallback === "css" && (
         <CssGradientBlurFallback
           direction={direction}
           maxRadius={maxRadius}

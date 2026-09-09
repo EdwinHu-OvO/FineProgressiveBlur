@@ -43,13 +43,13 @@ Provider 需要稳定、可计算的尺寸。采集源优先使用 `sourceRef`�
 
 ### Provider
 
-| 属性                  | 类型                                   | 默认值   | 说明                                                      |
-| --------------------- | -------------------------------------- | -------- | --------------------------------------------------------- |
-| `sourceRef`           | `RefObject<HTMLElement \| null>`       | —        | Provider 内的正文容器                                     |
-| `captureBackend`      | `"auto" \| "html-in-canvas" \| "rito"` | `"auto"` | 首选渲染路径                                              |
-| `onBackendChange`     | `(backend) => void`                    | —        | `pending`、`html-in-canvas`、`rito`、`css`、`unavailable` |
-| `maxDevicePixelRatio` | `number`                               | `2`      | 最大纹理 DPR，限制在 1–3                                  |
-| `fallback`            | `"css" \| "transparent"`               | `"css"`  | 仅 WebGL2 不可用时生效                                    |
+| 属性                  | 类型                                   | 默认值   | 说明                                                    |
+| --------------------- | -------------------------------------- | -------- | ------------------------------------------------------- |
+| `sourceRef`           | `RefObject<HTMLElement \| null>`       | —        | Provider 内的正文容器                                   |
+| `captureBackend`      | `"auto" \| "html-in-canvas" \| "rito"` | `"auto"` | 首选渲染路径                                            |
+| `onBackendChange`     | `(backend) => void`                    | —        | `css`、`html-in-canvas`、`rito`；纹理后端就绪后报告切换 |
+| `maxDevicePixelRatio` | `number`                               | `2`      | 最大纹理 DPR，限制在 1–3                                |
+| `fallback`            | `"css" \| "transparent"`               | `"css"`  | 首屏及 WebGL 帧未就绪时的基础效果                       |
 
 通过 ref 调用 `refresh()` 可以标记现有后端的内容，刷新命令式 Canvas/CSSOM 变化；后端尚未建立时会重试初始化。正文节点与滚动位置保留。
 
@@ -66,13 +66,14 @@ Provider 需要稳定、可计算的尺寸。采集源优先使用 `sourceRef`�
 
 ## 后端策略
 
-自动优先级为 **HTML-in-Canvas → Rito → CSS**，其中 CSS 有严格的能力门槛：
+组件采用渐进式增强：**默认 CSS → WebGL 管线就绪后接管**。自动模式的纹理后端优先级为 **HTML-in-Canvas → Rito**：
 
 - **能创建 WebGL2 上下文**：优先 HTML-in-Canvas，原生 API 不可用、布局不适用或原生路径失败时使用 Rito。显式选择 `rito` 可跳过原生尝试。
 - **不能创建 WebGL2 上下文**：启用配置的 CSS/透明保底，不启动纹理后端。
-- **WebGL2 可用但 Rito 绘制失败**：释放呈现 Canvas，保留原生正文，报告 `unavailable`；不启用 CSS。初始化等待、滚动等待和运行中的 context loss 同样不会启用 CSS。
+- **初始化或首帧等待**：保持配置的 CSS/透明保底。每个 Overlay 成功绘制首帧后同步以 `display: none` 关闭其 CSS 滤镜层，避免双重模糊。
+- **绘制失败或 context loss**：释放失效的呈现 Canvas，保留原生正文并恢复保底；自动模式仍可从原生后端转向 Rito。没有就绪的纹理后端时报告 `css`，错误原因保留在 Provider 的诊断属性中。
 
-能力检查只在客户端执行一次；不会将后续的渲染错误当成设备缺少 WebGL。服务器输出在能力检测前保持 `pending`，不会先渲染 CSS 再切换。
+服务器输出和 hydration 初始状态就包含 CSS 层，禁用 JavaScript 时也可显示基础模糊。能力检查只在客户端执行一次；不会将后续的渲染错误当成设备缺少 WebGL。后端切换或 Overlay 重新注册会恢复 CSS，直到新的有效帧完成。`fallback="transparent"` 显式关闭所有这些阶段的 CSS 保底。
 
 演示页提供自动、HTML-in-Canvas 和 Rito 切换，不提供强制 CSS 选项。下方图片区域的普通 CSS blur 是视觉参考，独立于 Provider 的保底策略。
 
@@ -91,7 +92,7 @@ SnapDOM、快照采集器与公开的 `captureAdapter` / Canvas adapter 接口�
 - 内容变化先按绘制指令检查受影响块；未变化的块跳过 Canvas 2D 与 candidate 上传，变化块在 accepted/candidate 双纹理间原子交换，没有 CPU 图像读回。
 - 选区与焦点在 GPU 合成；嵌套滚动和 sticky 内容需要更新受影响的缓存块。动态 Canvas 可显式调用 `refresh()`。
 
-`scrollend` 在滚动停止后更新模糊，等待时显示正文。`static` 只在初始化、尺寸变化和手动刷新时更新；过期的模糊隐藏到下一次更新。
+`scrollend` 在滚动停止后更新 WebGL 模糊，等待时使用配置的保底。`static` 只在初始化、尺寸变化和手动刷新时更新；过期的 WebGL 模糊隐藏并恢复保底，直到下一次有效帧。
 
 ## 模糊管线
 

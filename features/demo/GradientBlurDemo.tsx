@@ -20,7 +20,7 @@ const INITIAL_DIRECTIONS = { top: true, bottom: true };
 export function GradientBlurDemo() {
   const [backend, setBackend] = useState<GradientBlurBackend>("auto");
   const [activeBackend, setActiveBackend] =
-    useState<GradientBlurActiveBackend>("pending");
+    useState<GradientBlurActiveBackend>("css");
   const [height, setHeight] = useState(112);
   const [maxRadius, setMaxRadius] = useState(28);
   const [strategy, setStrategy] = useState<CaptureStrategy>("live");

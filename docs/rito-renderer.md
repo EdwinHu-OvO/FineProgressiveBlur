@@ -2,7 +2,7 @@
 
 在演示页选择 **Rito Canvas + WebGL**，或设置
 `<GradientBlurProvider captureBackend="rito">`。
-自动模式优先 HTML-in-Canvas，不可用或失败后使用 Rito；只有无法创建 WebGL2 上下文时才使用 CSS。
+首屏默认使用 CSS 保底。WebGL2 可用时，自动模式优先 HTML-in-Canvas，不可用或失败后使用 Rito；每个 Overlay 成功绘制首帧后关闭 CSS，管线不可用时恢复保底。
 
 ## 提取范围
 
@@ -61,10 +61,10 @@ Canvas 选区样式是独立高亮层，不承诺与浏览器的所有 `::select
 
 遇到 transform、filter、mask、复杂背景、inset 阴影、生成内容、列表标记、
 纵向/显式 RTL 排版、嵌入输入控件、iframe、video、Shadow DOM、SVG `foreignObject` 或
-SMIL 动画时，保留原生正文并报告不可用状态，避免遮住 DOM 后显示不完整内容；不会转用 CSS 模糊。
+SMIL 动画时，保留原生正文并恢复配置的 CSS/透明保底，避免遮住 DOM 后显示不完整内容。
 根源需为 Provider 内的 HTML 容器，嵌入 Canvas 通过资源绘制接入。
 源或祖先需提供明确的不透明纯色底色；透明层会逐层合成到这层底色。
-错误原因写入 Provider 的 `data-rito-error`，演示页显示纹理后端不可用状态。
+错误原因写入 Provider 的 `data-rito-error`，演示页显示 CSS 保底状态。
 
 这是一条受限绘制后端，不是浏览器全部 HTML/CSS 的替代品。
 
@@ -84,3 +84,5 @@ SMIL 动画时，保留原生正文并报告不可用状态，避免遮住 DOM �
 事件、帧队列、资源、DOM 读取、GPU 缓存、交互和模糊分别拥有独立模块。
 
 2026-09-08：移除快照后端后，CSS 仅用于 WebGL2 不可用设备。之前的「未支持滤镜回退」现在应显示原生正文与不可用状态。
+
+2026-09-09：改为渐进式增强，取代上述 CSS 能力门槛。首屏、初始化和失效帧使用配置的保底；有效 WebGL 帧绘制后同步关闭 CSS，内容不支持或 context loss 时恢复保底。
