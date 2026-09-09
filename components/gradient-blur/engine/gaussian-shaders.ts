@@ -10,6 +10,8 @@ uniform vec2 uViewSize;
 uniform vec2 uAxis;
 uniform float uSigma;
 uniform float uDirection;
+uniform vec4 uCurve;
+uniform bool uCustomCurve;
 uniform bool uUniformRadius;
 uniform vec2 uResampleVariance;
 uniform int uPairs;
@@ -23,8 +25,23 @@ vec4 sampleAt(vec2 pixel) {
   return texture(uSource, clamp(pixel, minimum, maximum) / uAtlasSize);
 }
 float profileAt(float y) {
-  float t = clamp(y, 0.0, 1.0);
-  return 1.0 - t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+  if (!uCustomCurve) {
+    float t = clamp(y, 0.0, 1.0);
+    return 1.0 - t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+  }
+  float target = clamp(y, 0.0, 1.0);
+  if (target <= 0.0) return 1.0;
+  if (target >= 1.0) return 0.0;
+  float low = 0.0;
+  float high = 1.0;
+  for (int index = 0; index < 12; index++) {
+    float t = (low + high) * 0.5;
+    float x = 3.0 * (1.0 - t) * (1.0 - t) * t * uCurve.x + 3.0 * (1.0 - t) * t * t * uCurve.z + t * t * t;
+    if (x < target) low = t; else high = t;
+  }
+  float t = (low + high) * 0.5;
+  float value = 3.0 * (1.0 - t) * (1.0 - t) * t * uCurve.y + 3.0 * (1.0 - t) * t * t * uCurve.w + t * t * t;
+  return clamp(1.0 - value, 0.0, 1.0);
 }
 float expNegApprox(float x) {
   // Range reduction keeps the fifth-order polynomial accurate even for

@@ -1,14 +1,16 @@
-import type { GradientBlurDirection } from "../types";
+import type { GradientBlurBezier, GradientBlurDirection } from "../types";
 import { createBlurLayers, layerMask } from "./layered-blur";
 
 interface CssGradientBlurFallbackProps {
   direction: GradientBlurDirection;
   maxRadius: number;
+  blurCurve?: GradientBlurBezier;
 }
 
 export function CssGradientBlurFallback({
   direction,
   maxRadius,
+  blurCurve,
 }: CssGradientBlurFallbackProps) {
   return (
     <div
@@ -21,7 +23,7 @@ export function CssGradientBlurFallback({
         // able to sample the real backdrop, not an isolated intermediate root.
       }}
     >
-      {createBlurLayers(maxRadius).map((layer, index) => {
+      {createBlurLayers(maxRadius, blurCurve).map((layer, index) => {
         const mask = layerMask(layer, direction);
         return (
           <div

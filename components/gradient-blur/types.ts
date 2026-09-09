@@ -11,12 +11,28 @@ export const GRADIENT_BLUR_SAMPLE_COUNT = 9;
 export type CaptureStrategy = "static" | "scrollend" | "live";
 export type GradientBlurBackend = "auto" | "html-in-canvas" | "rito";
 export type GradientBlurActiveBackend =
-  "pending" | "html-in-canvas" | "rito" | "css" | "unavailable";
+  | "pending"
+  | "html-in-canvas"
+  | "rito"
+  | "css"
+  | "unavailable";
 export type GradientBlurDirection = "top" | "bottom";
 export type GradientBlurPhase = "idle" | "capturing" | "ready" | "fallback";
 export type CaptureReason =
-  "initial" | "resize" | "scrollend" | "live" | "manual";
+  | "initial"
+  | "resize"
+  | "scrollend"
+  | "live"
+  | "manual";
 export type GradientBlurAlgorithm = "compact9";
+
+/** Cubic-bezier easing parameters, matching CSS cubic-bezier(x1, y1, x2, y2). */
+export interface GradientBlurBezier {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
 
 export interface GradientBlurBandMetrics {
   label: "outer" | "middle" | "inner";
@@ -63,6 +79,7 @@ export interface GradientBlurProviderProps extends Omit<
   sourceRef?: RefObject<HTMLElement | null>;
   captureBackend?: GradientBlurBackend;
   algorithm?: GradientBlurAlgorithm;
+  blurCurve?: GradientBlurBezier;
   onBackendChange?: (backend: GradientBlurActiveBackend) => void;
   maxDevicePixelRatio?: number;
   fallback?: "css" | "transparent";
@@ -76,6 +93,7 @@ export interface GradientBlurOverlayProps extends Omit<
   height?: number | string;
   maxRadius?: number;
   algorithm?: GradientBlurAlgorithm;
+  blurCurve?: GradientBlurBezier;
   captureStrategy?: CaptureStrategy;
   onMetrics?: (metrics: GradientBlurMetrics) => void;
 }
@@ -84,6 +102,7 @@ export interface GradientBlurProfile {
   direction: GradientBlurDirection;
   maxRadius: number;
   algorithm?: GradientBlurAlgorithm;
+  blurCurve?: GradientBlurBezier;
 }
 
 export interface OverlayStyle extends CSSProperties {

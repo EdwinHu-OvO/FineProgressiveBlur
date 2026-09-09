@@ -215,6 +215,7 @@ export class RitoSurface implements BlurSurface {
           overlay.options.direction,
           overlay.options.maxRadius,
           overlay.options.algorithm ?? "compact9",
+          overlay.options.blurCurve ?? null,
         ]),
       });
     this.redraw = false;
@@ -229,5 +230,4 @@ export class RitoSurface implements BlurSurface {
     this.dispose();
     this.options.onFailure(error);
   };
-
 }

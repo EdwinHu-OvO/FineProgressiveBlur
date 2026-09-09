@@ -22,7 +22,12 @@ import {
 export function ScrollSurface() {
   return (
     <GradientBlurProvider captureBackend="auto">
-      <GradientBlurOverlay direction="top" height={100} maxRadius={24} />
+      <GradientBlurOverlay
+        direction="top"
+        height={100}
+        maxRadius={24}
+        blurCurve={{ x1: 0.25, y1: 0.1, x2: 0.25, y2: 1 }}
+      />
       <div className="scroll-container" data-gradient-blur-source>
         {/* 原生滚动内容 */}
       </div>
@@ -33,6 +38,8 @@ export function ScrollSurface() {
 ```
 
 Provider 需要稳定、可计算的尺寸。采集源优先使用 `sourceRef`，其次寻找直接子元素 `[data-gradient-blur-source]`，最后使用第一个非 Overlay 子元素。Overlay 绝对定位，不参与布局，默认穿透指针事件。
+
+`blurCurve` 使用 CSS `cubic-bezier(x1, y1, x2, y2)` 的四个控制点，输入位置是从模糊外缘到正文接缝的归一化进度。曲线输出 0 代表保持 `maxRadius`，输出 1 代表半径降为 0；未传入时使用内置 smootherstep 曲线。`x1`、`x2` 会限制在 0–1，`y1`、`y2` 允许 CSS 式过冲。
 
 ### Provider
 
@@ -48,13 +55,14 @@ Provider 需要稳定、可计算的尺寸。采集源优先使用 `sourceRef`�
 
 ### Overlay
 
-| 属性              | 类型                                | 默认值   | 说明                            |
-| ----------------- | ----------------------------------- | -------- | ------------------------------- |
-| `direction`       | `"top" \| "bottom"`                 | 必填     | 覆盖的边缘                      |
-| `height`          | `number \| string`                  | `100`    | 覆盖高度                        |
-| `maxRadius`       | `number`                            | `24`     | 外侧最大高斯标准差，单位 CSS px |
-| `captureStrategy` | `"static" \| "scrollend" \| "live"` | `"live"` | 纹理更新时机                    |
-| `onMetrics`       | `(metrics) => void`                 | —        | 图集、上传与渲染指标            |
+| 属性              | 类型                                | 默认值   | 说明                                               |
+| ----------------- | ----------------------------------- | -------- | -------------------------------------------------- |
+| `direction`       | `"top" \| "bottom"`                 | 必填     | 覆盖的边缘                                         |
+| `height`          | `number \| string`                  | `100`    | 覆盖高度                                           |
+| `maxRadius`       | `number`                            | `24`     | 外侧最大高斯标准差，单位 CSS px                    |
+| `blurCurve`       | `{ x1, y1, x2, y2 }`                | —        | 可选 CSS `cubic-bezier()` 控制点，改变半径衰减曲线 |
+| `captureStrategy` | `"static" \| "scrollend" \| "live"` | `"live"` | 纹理更新时机                                       |
+| `onMetrics`       | `(metrics) => void`                 | —        | 图集、上传与渲染指标                               |
 
 ## 后端策略
 

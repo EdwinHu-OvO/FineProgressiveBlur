@@ -6,6 +6,7 @@ import type {
   GradientBlurDirection,
   GradientBlurMetrics,
   GradientBlurPhase,
+  GradientBlurBezier,
 } from "../types";
 import type { BlurSurface } from "./blur-surface";
 
@@ -15,6 +16,7 @@ interface SurfaceOverlayHookOptions {
   direction: GradientBlurDirection;
   maxRadius: number;
   algorithm?: import("../types").GradientBlurAlgorithm;
+  blurCurve?: GradientBlurBezier;
   strategy: CaptureStrategy;
   onMetrics?: (metrics: GradientBlurMetrics) => void;
 }
@@ -25,6 +27,7 @@ export function useSurfaceOverlay({
   direction,
   maxRadius,
   algorithm,
+  blurCurve,
   strategy,
   onMetrics,
 }: SurfaceOverlayHookOptions): GradientBlurPhase {
@@ -41,6 +44,7 @@ export function useSurfaceOverlay({
       direction,
       maxRadius: 0,
       algorithm,
+      blurCurve,
       strategy,
       onPhase: (nextPhase) => {
         element.style.setProperty(
@@ -51,10 +55,18 @@ export function useSurfaceOverlay({
       },
       onMetrics: (metrics) => callback.current?.(metrics),
     });
-  }, [surface, overlayRef, direction, strategy, algorithm]);
+  }, [surface, overlayRef, direction, strategy, algorithm, blurCurve]);
   useEffect(() => {
     const element = overlayRef.current;
     if (element) surface?.setRadius(element, maxRadius);
-  }, [surface, overlayRef, direction, strategy, maxRadius, algorithm]);
+  }, [
+    surface,
+    overlayRef,
+    direction,
+    strategy,
+    maxRadius,
+    algorithm,
+    blurCurve,
+  ]);
   return phase;
 }

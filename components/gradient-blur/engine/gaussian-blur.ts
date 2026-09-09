@@ -2,6 +2,7 @@ import type { GradientBlurProfile } from "../types";
 import type { AtlasLayout } from "./atlas-layout";
 import { GAUSSIAN_SHADER } from "./gaussian-shaders";
 import { createGaussianKernel } from "./gaussian-kernel";
+import { normalizeBezier } from "./profile";
 import { RenderTarget } from "./render-target";
 import { VERTEX_SHADER } from "./shaders";
 import { createProgram, requireUniform } from "./webgl-utils";
@@ -23,6 +24,8 @@ const UNIFORM_NAMES = [
   "axis",
   "sigma",
   "direction",
+  "curve",
+  "customCurve",
   "uniformRadius",
   "resampleVariance",
   "weights",
@@ -88,6 +91,11 @@ export class GaussianBlur {
     gl.uniform1f(u.sigma, profile.maxRadius);
     gl.uniform1i(u.uniformRadius, profile.uniformRadius ? 1 : 0);
     gl.uniform1f(u.direction, profile.direction === "top" ? 0 : 1);
+    const curve = normalizeBezier(
+      profile.blurCurve ?? { x1: 0, y1: 0, x2: 1, y2: 1 },
+    );
+    gl.uniform4f(u.curve, curve.x1, curve.y1, curve.x2, curve.y2);
+    gl.uniform1i(u.customCurve, profile.blurCurve ? 1 : 0);
     // A vertical radius field must filter Y first: the subsequent X taps all
     // share the destination row's sigma. X then Y mixes different row kernels
     // and stretches narrow strokes vertically. Constant blur allows either order.
@@ -157,10 +165,7 @@ export class GaussianBlur {
 
   private kernel(axis: number, sigma: number, variance: number) {
     const cached = this.kernels[axis];
-    if (
-      cached?.sigma === sigma &&
-      cached.variance === variance
-    )
+    if (cached?.sigma === sigma && cached.variance === variance)
       return cached.kernel;
     const kernel = createGaussianKernel(sigma, variance);
     this.kernels[axis] = {

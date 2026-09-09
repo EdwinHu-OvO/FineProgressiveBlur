@@ -24,4 +24,23 @@ describe("continuous blur profile", () => {
       1e-9,
     );
   });
+
+  it("accepts CSS-style cubic bezier parameters", () => {
+    const curve = { x1: 0.25, y1: 0.1, x2: 0.25, y2: 1 };
+    expect(blurRadiusAt(0, 24, curve)).toBe(24);
+    expect(blurRadiusAt(1, 24, curve)).toBe(0);
+    expect(blurRadiusAt(0.25, 24, curve)).toBeGreaterThan(0);
+    expect(blurRadiusAt(0.75, 24, curve)).toBeLessThan(
+      blurRadiusAt(0.25, 24, curve),
+    );
+  });
+
+  it("keeps custom control values bounded for safe radius interpolation", () => {
+    const curve = { x1: -4, y1: -2, x2: 8, y2: 3 };
+    for (let index = 0; index <= 100; index += 1) {
+      const radius = blurRadiusAt(index / 100, 24, curve);
+      expect(radius).toBeGreaterThanOrEqual(0);
+      expect(radius).toBeLessThanOrEqual(24);
+    }
+  });
 });

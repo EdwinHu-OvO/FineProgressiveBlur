@@ -68,6 +68,7 @@ Provider 共享同一个 WebGL2 场景。Rito 用 Canvas 2D 绘制缓存正文�
 - 捕获和裁剪对齐实际降采样纹素；奇数尺寸使用面积覆盖降采样，避免细线断层。
 - 纹理先转换为编码 sRGB、预乘 Alpha 的 RGBA8，再使用高斯分离卷积。
 - 渐变半径先沿 Y、再沿 X，避免 X→Y 带来的纵向拉丝；固定半径可融合垂直 pass。
+- `GradientBlurProfile.blurCurve` 可选传入 CSS cubic-bezier 四个控制点；它统一作用于 WebGL、Rito 和 CSS 保底的渐变半径映射，未传入时保持 smootherstep 默认行为。
 - 高斯算法固定最多 9 次双线性读取/轴（中心 + 4 组相邻权重）。权重在 CPU 侧缓存，shader 不使用随机噪点。
 - band 边界使用连续阈值和混合，不使用固定 2px 接缝。
 - 纹理、radius、algorithm 没有变化时复用已完成的高斯结果；内容不变时 Rito 不重画正文块、不上传、不重做视口模糊。
@@ -157,7 +158,7 @@ pnpm lint
 pnpm test
 ```
 
-当前基线：10 个测试文件、39 个测试通过。浏览器验证还覆盖：
+当前基线：10 个测试文件、44 个测试通过。浏览器验证还覆盖：
 
 - Rito 后端初始化、滚动、选区、按钮交互和内容更新。
 - HTML-in-Canvas 原生模式和自动模式的优先级。

@@ -73,7 +73,9 @@ export class SurfaceOverlay {
     const scaleX = canvas.width / canvasBounds.width;
     const scaleY = canvas.height / canvasBounds.height;
     const pixelRatio = frame.pixelRatio;
-    const reason = this.pending ?? (frame.contentChanged && strategy === "live" ? "live" : null);
+    const reason =
+      this.pending ??
+      (frame.contentChanged && strategy === "live" ? "live" : null);
     if (frame.contentChanged && strategy !== "live" && !reason)
       this.invalidate();
 
@@ -85,9 +87,7 @@ export class SurfaceOverlay {
         ? frame.cacheKey
         : undefined;
     const cacheHit = Boolean(cacheKey && this.cachedRenderers.has(cacheKey));
-    const renderer = cacheKey
-      ? this.rendererFor(cacheKey)
-      : this.renderer;
+    const renderer = cacheKey ? this.rendererFor(cacheKey) : this.renderer;
     element.dataset.gradientBlurCache = cacheHit ? "hit" : "miss";
     if (reason && !cacheHit) {
       const startedAt = performance.now();
@@ -98,6 +98,7 @@ export class SurfaceOverlay {
         sourceHeight,
         this.options.maxRadius,
         pixelRatio,
+        this.options.blurCurve,
       );
       const atlasBuildMs = performance.now() - startedAt;
       const uploadStartedAt = performance.now();
@@ -105,7 +106,11 @@ export class SurfaceOverlay {
         scene.framebuffer,
         {
           x: (sourceBounds.left - canvasBounds.left) * scaleX,
-          y: (sourceBounds.top - canvasBounds.top + (direction === "bottom" ? sourceBounds.height - height : 0)) * scaleY,
+          y:
+            (sourceBounds.top -
+              canvasBounds.top +
+              (direction === "bottom" ? sourceBounds.height - height : 0)) *
+            scaleY,
           width: width * scaleX,
           height: height * scaleY,
         },
@@ -189,10 +194,7 @@ export class SurfaceOverlay {
       this.cachedRenderers.set(cacheKey, cached);
       return cached;
     }
-    const renderer = new GradientBlurRenderer(
-      this.canvas,
-      this.renderer.gl,
-    );
+    const renderer = new GradientBlurRenderer(this.canvas, this.renderer.gl);
     this.cachedRenderers.set(cacheKey, renderer);
     while (this.cachedRenderers.size > 3) {
       const oldest = this.cachedRenderers.entries().next().value as

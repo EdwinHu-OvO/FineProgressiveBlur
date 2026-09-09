@@ -65,6 +65,12 @@ export function DemoViewport({
         fallback="css"
         maxDevicePixelRatio={2}
         algorithm={algorithm}
+        blurCurve={{
+          x1: 1,
+          y1: 1,
+          x2: 0.56,
+          y2: 1,
+        }}
       >
         {effectEnabled && directions.top ? (
           <GradientBlurOverlay
@@ -74,6 +80,13 @@ export function DemoViewport({
             maxRadius={maxRadius}
             algorithm={algorithm}
             onMetrics={onMetrics}
+            style={{
+              backgroundColor: "rgba(35, 35, 35, 0.45)",
+              maskImage:
+                "linear-gradient(to bottom, black 0%, transparent 98%)",
+              WebkitMaskImage:
+                "-webkit-linear-gradient(top, black 0%, transparent 98%)",
+            }}
           />
         ) : null}
 
@@ -97,6 +110,12 @@ export function DemoViewport({
             maxRadius={maxRadius}
             algorithm={algorithm}
             onMetrics={onMetrics}
+            style={{
+              backgroundColor: "rgba(35, 35, 35, 0.45)",
+              maskImage: "linear-gradient(to top, black 0%, transparent 98%)",
+              WebkitMaskImage:
+                "-webkit-linear-gradient(bottom, black 0%, transparent 98%)",
+            }}
           />
         ) : null}
       </GradientBlurProvider>

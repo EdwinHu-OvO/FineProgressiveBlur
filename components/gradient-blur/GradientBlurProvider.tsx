@@ -20,6 +20,7 @@ import type {
   GradientBlurActiveBackend,
   GradientBlurProviderHandle,
   GradientBlurProviderProps,
+  GradientBlurBezier,
 } from "./types";
 
 interface GradientBlurContextValue {
@@ -27,6 +28,7 @@ interface GradientBlurContextValue {
   surface: BlurSurface | null;
   fallback: "css" | "transparent";
   algorithm: import("./types").GradientBlurAlgorithm;
+  blurCurve?: GradientBlurBezier;
 }
 
 const GradientBlurContext = createContext<GradientBlurContextValue | null>(
@@ -54,6 +56,7 @@ export const GradientBlurProvider = forwardRef<
   {
     captureBackend = "auto",
     algorithm = "compact9",
+    blurCurve,
     children,
     fallback = "css",
     maxDevicePixelRatio = 2,
@@ -123,8 +126,9 @@ export const GradientBlurProvider = forwardRef<
       surface,
       fallback,
       algorithm,
+      blurCurve,
     }),
-    [activeBackend, surface, fallback, algorithm],
+    [activeBackend, surface, fallback, algorithm, blurCurve],
   );
 
   return (

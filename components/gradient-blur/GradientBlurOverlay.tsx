@@ -9,6 +9,7 @@ import { useSurfaceOverlay } from "./engine/useSurfaceOverlay";
 
 export function GradientBlurOverlay({
   algorithm: overlayAlgorithm,
+  blurCurve: overlayBlurCurve,
   captureStrategy = "live",
   className,
   direction,
@@ -23,8 +24,10 @@ export function GradientBlurOverlay({
     surface,
     activeBackend,
     algorithm: providerAlgorithm,
+    blurCurve: providerBlurCurve,
   } = useGradientBlurContext();
   const algorithm = overlayAlgorithm ?? providerAlgorithm;
+  const blurCurve = overlayBlurCurve ?? providerBlurCurve;
   const cssOnly = activeBackend === "css";
   const overlayRef = useRef<HTMLDivElement>(null);
   const surfacePhase = useSurfaceOverlay({
@@ -33,6 +36,7 @@ export function GradientBlurOverlay({
     direction,
     maxRadius,
     algorithm,
+    blurCurve,
     strategy: captureStrategy,
     onMetrics,
   });
@@ -71,7 +75,11 @@ export function GradientBlurOverlay({
       }}
     >
       {cssOnly && fallback === "css" && (
-        <CssGradientBlurFallback direction={direction} maxRadius={maxRadius} />
+        <CssGradientBlurFallback
+          direction={direction}
+          maxRadius={maxRadius}
+          blurCurve={blurCurve}
+        />
       )}
     </div>
   );

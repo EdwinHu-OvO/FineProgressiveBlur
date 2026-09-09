@@ -44,6 +44,19 @@ describe("radius-adaptive atlas", () => {
     }
   });
 
+  it("uses the custom curve when choosing adaptive band boundaries", () => {
+    const defaultLayout = createAtlasLayout(1000, 200, 28, 1);
+    const delayedLayout = createAtlasLayout(1000, 200, 28, 1, {
+      x1: 0.8,
+      y1: 0.1,
+      x2: 0.95,
+      y2: 0.9,
+    });
+    expect(delayedLayout.bands.map((band) => band.coreEnd)).not.toEqual(
+      defaultLayout.bands.map((band) => band.coreEnd),
+    );
+  });
+
   it("covers the source continuously, with aligned overlapping crops and no shelf overlap", () => {
     const layout = createAtlasLayout(1000, 200, 28, 2);
     const outer = layout.bands[0],

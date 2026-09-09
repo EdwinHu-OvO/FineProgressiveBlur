@@ -35,6 +35,19 @@ describe("layered CSS blur", () => {
     );
   });
 
+  it("applies a custom curve to fallback layer radii", () => {
+    const layers = createBlurLayers(32, {
+      x1: 0.25,
+      y1: 0.1,
+      x2: 0.25,
+      y2: 1,
+    });
+    expect(layers.map((layer) => layer.radius)).not.toEqual(
+      createBlurLayers(32).map((layer) => layer.radius),
+    );
+    expect(layers[0].radius).toBeLessThan(layers.at(-1)?.radius ?? 0);
+  });
+
   it.each([0, -1, NaN, Infinity])("omits the stack for radius %s", (radius) => {
     expect(createBlurLayers(radius)).toEqual([]);
   });
