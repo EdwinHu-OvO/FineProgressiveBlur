@@ -1,6 +1,12 @@
 # Fine Progressive Blur
 
-面向滚动内容边缘的 React / Next.js 渐变模糊组件。顶部和底部使用连续半径，保留原生滚动、交互与无障碍语义。
+面向滚动内容边缘的 React / Next.js 渐变模糊组件，让顶部和底部从清晰正文平滑过渡到模糊，同时保留原生滚动、交互与无障碍语义。
+目前仍在持续开发中。
+
+- **细腻的渐变效果**：WebGL2 高斯模糊半径连续变化，支持自定义贝塞尔衰减曲线，可独立调整上下边缘的高度与强度。
+- **针对滚动优化**：共享正文纹理，按模糊半径分级降采样并复用卷积结果；Rito 缓存内的普通滚动只更新 GPU 取样窗口，减少重复绘制与上传。
+- **渐进增强与保底**：首屏即可显示 CSS 模糊，WebGL 就绪后接管；自动选择 HTML-in-Canvas 或 Rito 后端，不支持 WebGL2 或渲染失败时恢复配置的保底效果。
+- **接入与更新可控**：通过 Provider 与 Overlay 组合使用，覆盖层不占布局、不拦截指针事件；支持实时、滚动结束和静态更新策略，以及手动刷新。
 
 ## 开发
 
@@ -15,25 +21,29 @@ pnpm dev
 
 ```tsx
 import {
-  GradientBlurOverlay,
-  GradientBlurProvider,
+    GradientBlurOverlay,
+    GradientBlurProvider,
 } from "@/components/gradient-blur";
 
 export function ScrollSurface() {
-  return (
-    <GradientBlurProvider captureBackend="auto">
-      <GradientBlurOverlay
-        direction="top"
-        height={100}
-        maxRadius={24}
-        blurCurve={{ x1: 0.25, y1: 0.1, x2: 0.25, y2: 1 }}
-      />
-      <div className="scroll-container" data-gradient-blur-source>
-        {/* 原生滚动内容 */}
-      </div>
-      <GradientBlurOverlay direction="bottom" height={100} maxRadius={24} />
-    </GradientBlurProvider>
-  );
+    return (
+        <GradientBlurProvider captureBackend="auto">
+            <GradientBlurOverlay
+                direction="top"
+                height={100}
+                maxRadius={24}
+                blurCurve={{ x1: 0.25, y1: 0.1, x2: 0.25, y2: 1 }}
+            />
+            <div className="scroll-container" data-gradient-blur-source>
+                {/* 原生滚动内容 */}
+            </div>
+            <GradientBlurOverlay
+                direction="bottom"
+                height={100}
+                maxRadius={24}
+            />
+        </GradientBlurProvider>
+    );
 }
 ```
 
@@ -120,4 +130,4 @@ SnapDOM、快照采集器与公开的 `captureAdapter` / Canvas adapter 接口�
 
 ## 许可证
 
-仓库原有代码使用 MIT。Rito 提取模块沿用 **AGPL-3.0-only**；上游提交、提取清单、本地改动与完整许可证保存在 [UPSTREAM.md](components/gradient-blur/rito/vendor/UPSTREAM.md) 和 [LICENSE](components/gradient-blur/rito/vendor/LICENSE)。
+Rito 提取模块采用 **AGPL-3.0-only**；上游提交、提取清单、本地改动与完整许可证保存在 [UPSTREAM.md](components/gradient-blur/rito/vendor/UPSTREAM.md) 和 [LICENSE](components/gradient-blur/rito/vendor/LICENSE)。
