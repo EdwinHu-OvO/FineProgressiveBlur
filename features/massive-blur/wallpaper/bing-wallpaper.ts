@@ -1,4 +1,5 @@
-import { FALLBACK_WALLPAPER, type DailyWallpaper } from "./types";
+import { sitePath } from "../../../lib/site-path.ts";
+import { FALLBACK_WALLPAPER, type DailyWallpaper } from "./types.ts";
 
 const ARCHIVE =
   "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=zh-CN";
@@ -27,7 +28,9 @@ export function parseBingWallpaper(payload: unknown): DailyWallpaper {
       ? first.enddate.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3")
       : "";
   return {
-    src: `/api/bing-wallpaper/image?id=${encodeURIComponent(imageId)}`,
+    src: sitePath(
+      `/api/bing-wallpaper/image?id=${encodeURIComponent(imageId)}`,
+    ),
     title: typeof first.title === "string" ? first.title : "必应每日一图",
     credit:
       typeof first.copyright === "string" ? first.copyright : "Bing 每日一图",

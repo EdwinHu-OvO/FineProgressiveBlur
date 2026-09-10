@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { sitePath } from "@/lib/site-path";
 import {
   GradientBlurOverlay,
   GradientBlurProvider,
@@ -30,7 +31,9 @@ export function VariableBlurDemo({
     if (!upload) return;
     return () => URL.revokeObjectURL(upload.url);
   }, [upload]);
-  const source = upload?.url ?? (preset === "uniform" ? undefined : preset);
+  const source =
+    upload?.url ??
+    (preset === "uniform" ? undefined : sitePath(preset as `/${string}`));
   const scales = [...new Set(metrics?.bands.map((band) => band.scale))].sort(
     (a, b) => b - a,
   );

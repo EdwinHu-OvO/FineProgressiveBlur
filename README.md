@@ -18,6 +18,18 @@ pnpm dev
 
 打开 <http://localhost:3000>。常规检查：`pnpm lint`、`pnpm typecheck`、`pnpm test`。
 
+### 部署
+
+`pnpm build` 生成带动态壁纸接口的 standalone 服务器构建。GitHub Pages 工作流使用 Node.js 24 和 `npm run build:pages`，将静态站点输出到 `out/`。本地复现 Pages 构建：
+
+```bash
+NEXT_PUBLIC_BASE_PATH=/FineProgressiveBlur pnpm build:pages
+```
+
+自定义域名或域名根目录部署时省略 `NEXT_PUBLIC_BASE_PATH`。Pages 工作流从 `configure-pages` 获取这个路径，不再自动改写 Next.js 配置。
+
+`route.server.ts` 只加入服务器构建；Pages 构建前下载 Bing 壁纸和署名，生成静态资源，失败则保留本地示例图片。Pages 壁纸随部署更新，服务器版继续按小时重验。构建脚本使用 Node.js 24 原生执行 TypeScript，无额外运行器依赖。
+
 ## 使用
 
 ```tsx

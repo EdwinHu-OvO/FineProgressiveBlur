@@ -1,4 +1,6 @@
-export const COMPARISON_IMAGE = "/images/blur-comparison.jpg";
+import { sitePath } from "@/lib/site-path";
+
+export const COMPARISON_IMAGE = sitePath("/images/blur-comparison.jpg");
 export const COMPARISON_MAX_RADIUS = 48;
 // Keep the Gaussian's visible support outside the clipped comparison frame.
 export const COMPARISON_PADDING = COMPARISON_MAX_RADIUS * 3 + 1;

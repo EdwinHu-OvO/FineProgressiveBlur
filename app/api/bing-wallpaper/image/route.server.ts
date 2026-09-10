@@ -1,4 +1,5 @@
 import { BING_IMAGE_ID } from "@/features/massive-blur/wallpaper/bing-wallpaper";
+import { getBingImage } from "@/features/massive-blur/wallpaper/bing-image";
 
 /** Same-origin images can be sampled by both Canvas capture backends. */
 export async function GET(request: Request) {
@@ -6,19 +7,7 @@ export async function GET(request: Request) {
   if (!BING_IMAGE_ID.test(id))
     return new Response("Invalid image id", { status: 400 });
   try {
-    const response = await fetch(
-      `https://www.bing.com/th?id=${encodeURIComponent(id)}_1920x1080.jpg`,
-      {
-        next: { revalidate: 86400 },
-        signal: AbortSignal.timeout(10000),
-      },
-    );
-    const type = response.headers.get("content-type") ?? "";
-    if (!response.ok || !/^image\/(jpeg|png|webp)/.test(type))
-      throw new Error("Bing image unavailable");
-    const pixels = await response.arrayBuffer();
-    if (pixels.byteLength > 12 * 1024 * 1024)
-      throw new Error("Bing image too large");
+    const { pixels, type } = await getBingImage(id);
     return new Response(pixels, {
       headers: {
         "Content-Type": type,
