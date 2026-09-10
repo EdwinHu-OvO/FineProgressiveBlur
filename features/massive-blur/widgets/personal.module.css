@@ -1,0 +1,81 @@
+.wallpaperThumbnail {
+  display: block;
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+.wallpaperTitle {
+  margin: 19px 0 8px;
+  font-size: 15px;
+  font-weight: 500;
+}
+.wallpaperCredit {
+  font-size: 9px;
+  line-height: 1.8;
+  color: var(--dash-muted);
+  text-decoration: none;
+}
+.wallpaperCredit:hover {
+  text-decoration: underline;
+}
+.note {
+  width: 100%;
+  min-height: 220px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0;
+  resize: vertical;
+  font: inherit;
+  font-size: 12px;
+  line-height: 2;
+  color: var(--dash-muted);
+  background: transparent;
+}
+.activity {
+  display: grid;
+}
+.activity > div {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 19px 0;
+}
+.activity > div:first-child {
+  padding-top: 3px;
+}
+.activityDot {
+  width: 6px;
+  height: 6px;
+  border: 1px solid #829586;
+  border-radius: 50%;
+  flex: none;
+  margin-top: 5px;
+}
+.activity > div:first-child .activityDot {
+  background: #6c8c76;
+  border-color: transparent;
+}
+.activity strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.activity p {
+  margin: 7px 0 0;
+  font-size: 10px;
+  color: var(--dash-muted);
+}
+.activity time {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--dash-muted);
+  white-space: nowrap;
+}
+@media (max-width: 650px) {
+  .activity > div {
+    gap: 10px;
+  }
+  .activity strong {
+    font-size: 11px;
+  }
+}

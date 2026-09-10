@@ -1,0 +1,694 @@
+{
+  "date": "2026-09-10",
+  "environment": {
+    "browser": "Chromium Headless 153",
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+    "note": "Software GPU; correctness checks only, not hardware performance measurements."
+  },
+  "reference": "Full-source, same-pipeline fixed Gaussian; mask samples interpolate neighboring radii by variance. Uniform partial-halo cases also test source capture crop and output coordinates.",
+  "checks": {
+    "lint": "passed",
+    "typecheck": "passed",
+    "testFiles": 17,
+    "tests": 74
+  },
+  "gpuSummary": {
+    "maskCases": 96,
+    "maskMaxChannelError": 1.4460779118533367,
+    "uniformCases": 36,
+    "uniformMaxChannelError": 2,
+    "uniformMaxMeanAbsoluteError": 0.20782582108548958
+  },
+  "uniformCases": [
+    {
+      "dpr": 1,
+      "radius": 0,
+      "kind": "full",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 0,
+      "kind": "partial-full-source",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 0,
+      "kind": "partial-halo",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 87,
+        "y": 69,
+        "width": 259,
+        "height": 181
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 1,
+      "kind": "full",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 1,
+      "kind": "partial-full-source",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 1,
+      "kind": "partial-halo",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 81,
+        "y": 63,
+        "width": 271,
+        "height": 193
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 4,
+      "kind": "full",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 4,
+      "kind": "partial-full-source",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 4,
+      "kind": "partial-halo",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 69,
+        "y": 51,
+        "width": 295,
+        "height": 217
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 12,
+      "kind": "full",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.25,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 12,
+      "kind": "partial-full-source",
+      "max": 1,
+      "mae": 7.110504348073409e-6,
+      "scale": 0.25,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 12,
+      "kind": "partial-halo",
+      "max": 2,
+      "mae": 0.14019070372661532,
+      "scale": 0.25,
+      "capture": {
+        "x": 37,
+        "y": 19,
+        "width": 359,
+        "height": 281
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 28,
+      "kind": "full",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.125,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 28,
+      "kind": "partial-full-source",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.125,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 28,
+      "kind": "partial-halo",
+      "max": 2,
+      "mae": 0.20782582108548958,
+      "scale": 0.125,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 460,
+        "height": 364
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 48,
+      "kind": "full",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.0625,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 48,
+      "kind": "partial-full-source",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.0625,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 1,
+      "radius": 48,
+      "kind": "partial-halo",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.0625,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 0,
+      "kind": "full",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 0,
+      "kind": "partial-full-source",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 0,
+      "kind": "partial-halo",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 87,
+        "y": 69,
+        "width": 259,
+        "height": 181
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 1,
+      "kind": "full",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 1,
+      "kind": "partial-full-source",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 1,
+      "kind": "partial-halo",
+      "max": 0,
+      "mae": 0,
+      "scale": 1,
+      "capture": {
+        "x": 77,
+        "y": 59,
+        "width": 279,
+        "height": 201
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 4,
+      "kind": "full",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.5,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 4,
+      "kind": "partial-full-source",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.5,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 4,
+      "kind": "partial-halo",
+      "max": 2,
+      "mae": 0.0373301478273854,
+      "scale": 0.5,
+      "capture": {
+        "x": 53,
+        "y": 35,
+        "width": 327,
+        "height": 249
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 12,
+      "kind": "full",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.125,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 12,
+      "kind": "partial-full-source",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.125,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 12,
+      "kind": "partial-halo",
+      "max": 2,
+      "mae": 0.13792956334392797,
+      "scale": 0.125,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 444,
+        "height": 348
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 28,
+      "kind": "full",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.0625,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 28,
+      "kind": "partial-full-source",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.0625,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 28,
+      "kind": "partial-halo",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.0625,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 48,
+      "kind": "full",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.03125,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 48,
+      "kind": "partial-full-source",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.03125,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    },
+    {
+      "dpr": 2,
+      "radius": 48,
+      "kind": "partial-halo",
+      "max": 0,
+      "mae": 0,
+      "scale": 0.03125,
+      "capture": {
+        "x": 0,
+        "y": 0,
+        "width": 513,
+        "height": 387
+      }
+    }
+  ],
+  "integration": {
+    "initial": {
+      "backend": "rito",
+      "mode": "mask",
+      "phase": "ready",
+      "uploads": 1,
+      "fallback": "none",
+      "blocks": 55,
+      "renderCount": 2
+    },
+    "rerender": {
+      "backend": "rito",
+      "mode": "mask",
+      "phase": "ready",
+      "uploads": 1,
+      "fallback": "none",
+      "blocks": 55,
+      "renderCount": 2
+    },
+    "scrolled": {
+      "backend": "rito",
+      "mode": "mask",
+      "phase": "ready",
+      "uploads": 1,
+      "fallback": "none",
+      "blocks": 55,
+      "renderCount": 3
+    },
+    "radius": {
+      "backend": "rito",
+      "mode": "mask",
+      "phase": "ready",
+      "uploads": 1,
+      "fallback": "none",
+      "blocks": 57,
+      "renderCount": 5
+    },
+    "bottom": {
+      "backend": "rito",
+      "mode": "mask",
+      "phase": "ready",
+      "uploads": 1,
+      "fallback": "none",
+      "blocks": 57,
+      "renderCount": 6
+    },
+    "revision": {
+      "backend": "rito",
+      "mode": "mask",
+      "phase": "ready",
+      "uploads": 8,
+      "fallback": "none",
+      "blocks": 1,
+      "renderCount": 2
+    },
+    "removed": {
+      "backend": "rito",
+      "mode": "uniform",
+      "phase": "ready",
+      "uploads": 8,
+      "fallback": "none",
+      "blocks": 1,
+      "renderCount": 2
+    },
+    "uniformSmall": {
+      "backend": "rito",
+      "mode": "uniform",
+      "phase": "ready",
+      "uploads": 8,
+      "fallback": "none",
+      "blocks": 1,
+      "renderCount": 3
+    },
+    "uniformNative": {
+      "backend": "html-in-canvas",
+      "mode": "uniform",
+      "phase": "ready",
+      "uploads": 8,
+      "fallback": "none",
+      "blocks": 1,
+      "renderCount": 1
+    },
+    "gradient": {
+      "backend": "html-in-canvas",
+      "mode": "gradient",
+      "direction": "bottom",
+      "phase": "ready",
+      "uploads": 8,
+      "fallback": "none",
+      "blocks": 5,
+      "renderCount": 1
+    },
+    "native": {
+      "backend": "html-in-canvas",
+      "mode": "mask",
+      "phase": "ready",
+      "uploads": 9,
+      "fallback": "none",
+      "blocks": 1,
+      "renderCount": 1
+    },
+    "stale": {
+      "backend": "rito",
+      "mode": "mask",
+      "phase": "capturing",
+      "uploads": 11,
+      "fallback": "block",
+      "blocks": 1,
+      "renderCount": 2
+    },
+    "refreshed": {
+      "backend": "rito",
+      "mode": "mask",
+      "phase": "ready",
+      "uploads": 11,
+      "fallback": "none",
+      "blocks": 1,
+      "renderCount": 3
+    },
+    "scrollend": {
+      "backend": "rito",
+      "mode": "mask",
+      "phase": "ready",
+      "uploads": 12,
+      "fallback": "none",
+      "blocks": 1,
+      "renderCount": 3
+    },
+    "lost": {
+      "backend": "css",
+      "mode": "mask",
+      "phase": "ready",
+      "uploads": 12,
+      "fallback": "block",
+      "blocks": 1,
+      "renderCount": 3
+    },
+    "recovered": {
+      "backend": "rito",
+      "mode": "mask",
+      "phase": "ready",
+      "uploads": 13,
+      "fallback": "none",
+      "blocks": 1,
+      "renderCount": 1
+    },
+    "failed": {
+      "backend": "rito",
+      "mode": "mask",
+      "phase": "fallback",
+      "uploads": 13,
+      "fallback": "block",
+      "blocks": 1,
+      "renderCount": 1
+    },
+    "restored": {
+      "backend": "rito",
+      "mode": "mask",
+      "phase": "ready",
+      "uploads": 14,
+      "fallback": "none",
+      "blocks": 57,
+      "renderCount": 2
+    }
+  },
+  "browserErrors": []
+}

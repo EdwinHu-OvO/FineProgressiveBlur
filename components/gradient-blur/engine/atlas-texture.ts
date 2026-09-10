@@ -43,7 +43,14 @@ export class AtlasTexture {
     };
     const bands = [...layout.bands].sort((a, b) => b.scale - a.scale);
     // The zero/small-radius path needs no downsample storage or extra copies.
-    if (bands.length === 1 && bands[0].scale === 1) {
+    if (
+      bands.length === 1 &&
+      bands[0].scale === 1 &&
+      bands[0].captureStart === 0 &&
+      bands[0].captureEnd === 1 &&
+      (bands[0].captureLeft ?? 0) === 0 &&
+      (bands[0].captureRight ?? 1) === 1
+    ) {
       this.copy.draw(source, region, this.target.framebuffer, bands[0]);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       return;
@@ -97,9 +104,9 @@ export class AtlasTexture {
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER, input);
         gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.target.framebuffer);
         gl.blitFramebuffer(
-          0,
+          Math.round((band.captureLeft ?? 0) * width),
           Math.round(start * height),
-          width,
+          Math.round((band.captureRight ?? 1) * width),
           Math.round(end * height),
           band.x,
           band.y,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import Link from "next/link";
 import type {
   CaptureStrategy,
   GradientBlurDirection,
@@ -13,6 +14,7 @@ import { BlurControls } from "./BlurControls";
 import { DemoViewport } from "./DemoViewport";
 import { RuntimeDiagnostics } from "./RuntimeDiagnostics";
 import { ImageBlurComparison } from "./image-comparison/ImageBlurComparison";
+import { VariableBlurDemo } from "./variable-blur/VariableBlurDemo";
 import styles from "./demo-shell.module.css";
 
 const INITIAL_DIRECTIONS = { top: true, bottom: true };
@@ -39,9 +41,11 @@ export function GradientBlurDemo() {
   }, []);
 
   const updateMetrics = useCallback((nextMetrics: GradientBlurMetrics) => {
+    const direction = nextMetrics.direction;
+    if (direction === undefined) return;
     setMetrics((current) => ({
       ...current,
-      [nextMetrics.direction]: nextMetrics,
+      [direction]: nextMetrics,
     }));
   }, []);
 
@@ -72,6 +76,9 @@ export function GradientBlurDemo() {
           <p className={styles.eyebrow}>WebGL progressive blur</p>
           <h1>Fine Progressive Blur</h1>
           <p className={styles.intro}>局部纹理、连续半径、原生交互。</p>
+          <Link href="/massiveblur" className={styles.demoLink}>
+            大面积模糊 Dashboard ↗
+          </Link>
         </div>
         <div className={styles.engineStatus} data-ready={isReady}>
           <span aria-hidden="true" />
@@ -121,6 +128,7 @@ export function GradientBlurDemo() {
         metrics={metrics}
         strategy={strategy}
       />
+      <VariableBlurDemo backend={backend} />
       <ImageBlurComparison algorithm={algorithm} />
     </main>
   );

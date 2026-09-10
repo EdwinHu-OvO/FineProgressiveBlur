@@ -9,6 +9,8 @@ import { createProgram, requireUniform } from "./webgl-utils";
 
 export interface BlurRenderProfile extends GradientBlurProfile {
   uniformRadius?: boolean;
+  /** Shared static results finish both axes before presentation. */
+  materialize?: boolean;
 }
 
 export interface GaussianResult {
@@ -78,8 +80,10 @@ export class GaussianBlur {
       u = this.uniforms;
     this.firstPass.resize(atlas.width, atlas.height);
     const fuseVertical =
+      !profile.materialize &&
       profile.uniformRadius &&
       atlas.bands.length === 1 &&
+      atlas.bands[0].sigma === undefined &&
       atlas.bands[0].scale === 1;
     if (!fuseVertical) this.secondPass.resize(atlas.width, atlas.height);
     gl.useProgram(this.program);
@@ -113,7 +117,8 @@ export class GaussianBlur {
         gl.viewport(band.x, band.y, band.width, band.height);
         gl.uniform4f(u.rect, band.x, band.y, band.width, band.height);
         gl.uniform2f(u.range, band.captureStart, band.captureEnd);
-        const scaleX = band.width / atlas.sourceWidth;
+        const rangeX = (band.captureRight ?? 1) - (band.captureLeft ?? 0);
+        const scaleX = band.width / (rangeX * atlas.sourceWidth);
         const scaleY =
           band.height /
           ((band.captureEnd - band.captureStart) * atlas.sourceHeight);
@@ -125,13 +130,13 @@ export class GaussianBlur {
         if (profile.uniformRadius) {
           const density =
             axis === 0
-              ? band.width / view.width
+              ? band.width / (view.width * rangeX)
               : band.height /
                 ((band.captureEnd - band.captureStart) * view.height);
           const scale = axis === 0 ? scaleX : scaleY;
           const kernel = this.kernel(
             axis,
-            profile.maxRadius * density,
+            (band.sigma ?? profile.maxRadius) * density,
             Math.max(0, 1 - scale * scale) / 4,
           );
           gl.uniform1fv(u.weights, kernel.weights);

@@ -38,6 +38,7 @@ export function RuntimeDiagnostics({
     (entry): entry is GradientBlurMetrics =>
       Boolean(
         entry &&
+        entry.direction !== undefined &&
         directions[entry.direction] &&
         entry.adapterId === activeBackend,
       ),

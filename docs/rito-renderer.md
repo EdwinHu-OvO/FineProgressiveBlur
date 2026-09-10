@@ -27,6 +27,8 @@ Canvas 2D → GPU 的首次/变更上传仍然存在，不把这条路径称为�
 
 ## 更新与资源边界
 
+Provider 可选 `sourceMode="static"`：背景只在初始、尺寸/DPR 变化或 `refresh()` 时更新，Overlay 的位置与半径变化不重新读取背景。全模糊结果由 `SurfaceOverlays` / `StaticUniformCache` 按半径共享；多张卡片只裁切合成。默认 live 行为及渐变/蒙版管线保留，详见 [静态背景](static-source.md)。
+
 - 没有固定采样频率限制。事件合并到下一个动画帧，一次只处理一个异步帧，保留最新待处理内容。
 - 空闲时不安排连续渲染循环。内容事件只触发绘制指令检查；非视觉属性变化不会上传或绘制。
 - 缓存内普通滚动只更新 GPU 取样窗口，不重新读取 DOM、重画 Canvas 或上传内容块。
@@ -86,3 +88,9 @@ SMIL 动画时，保留原生正文并恢复配置的 CSS/透明保底，避免�
 2026-09-08：移除快照后端后，CSS 仅用于 WebGL2 不可用设备。之前的「未支持滤镜回退」现在应显示原生正文与不可用状态。
 
 2026-09-09：改为渐进式增强，取代上述 CSS 能力门槛。首屏、初始化和失效帧使用配置的保底；有效 WebGL 帧绘制后同步关闭 CSS，内容不支持或 context loss 时恢复保底。
+
+## 蒙版扩展补充
+
+Overlay 不传 `direction` / `mask` 时默认全模糊，使用一块按半径与 DPR 降采样的纹理；`direction` 和 `mask` 互斥选择方向渐变与二维蒙版。三种模式共享采集后端，接口见 [README](../README.md#overlay)。
+
+`GradientBlurOverlay.mask` 使用同一个 Rito 场景与正文纹理，采集之后才按蒙版规划二维多采样率图集。蒙版不是正文 DOM 的 CSS mask，不改变 Rito 对正文 CSS 的支持范围。Provider / 原生内容 / Overlay 的组合及滚动策略保持不变；静态蒙版的分析结果在滚动时复用。接口和限制见 [Variable Blur](variable-blur.md)。

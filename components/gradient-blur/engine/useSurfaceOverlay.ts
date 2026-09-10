@@ -16,14 +16,17 @@ import type {
   GradientBlurBezier,
 } from "../types";
 import type { BlurSurface } from "./blur-surface";
+import type { ResolvedBlurMask } from "../mask/types";
+import { observeOverlayLayout } from "./observe-overlay-layout";
 
 interface SurfaceOverlayHookOptions {
   surface: BlurSurface | null;
   overlayRef: RefObject<HTMLDivElement | null>;
-  direction: GradientBlurDirection;
+  direction?: GradientBlurDirection;
   maxRadius: number;
   algorithm?: import("../types").GradientBlurAlgorithm;
   blurCurve?: GradientBlurBezier;
+  mask?: ResolvedBlurMask;
   strategy: CaptureStrategy;
   onMetrics?: (metrics: GradientBlurMetrics) => void;
 }
@@ -35,6 +38,7 @@ export function useSurfaceOverlay({
   maxRadius,
   algorithm,
   blurCurve,
+  mask,
   strategy,
   onMetrics,
 }: SurfaceOverlayHookOptions): GradientBlurPhase {
@@ -60,15 +64,10 @@ export function useSurfaceOverlay({
       direction,
       algorithm,
       blurCurve: stableBlurCurve,
+      mask,
       strategy,
     }),
-    [
-      surface,
-      direction,
-      algorithm,
-      strategy,
-      stableBlurCurve,
-    ],
+    [surface, direction, algorithm, strategy, stableBlurCurve, mask],
   );
   const [status, setStatus] = useState<{
     registration: typeof registration;
@@ -103,8 +102,12 @@ export function useSurfaceOverlay({
       },
       onMetrics: (metrics) => callback.current?.(metrics),
     });
+    const unobserve = observeOverlayLayout(element, () =>
+      surface.requestOverlay(element),
+    );
     return () => {
       active = false;
+      unobserve();
       unregister();
       resetFallback();
     };
@@ -123,6 +126,7 @@ export function useSurfaceOverlay({
     curveY1,
     curveX2,
     curveY2,
+    mask,
   ]);
   return status?.registration === registration ? status.phase : "capturing";
 }

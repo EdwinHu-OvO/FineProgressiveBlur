@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" preserveAspectRatio="none">
+  <defs>
+    <radialGradient id="focus" cx="38%" cy="36%" r="68%">
+      <stop offset="0.22" stop-color="black"/>
+      <stop offset="0.85" stop-color="white"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#focus)"/>
+</svg>

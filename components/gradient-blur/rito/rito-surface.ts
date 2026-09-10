@@ -1,9 +1,7 @@
-import type { CaptureReason } from "../types";
+import type { CaptureReason, GradientBlurSourceMode } from "../types";
 import type { BlurSurface } from "../engine/blur-surface";
-import {
-  SurfaceOverlay,
-  type SurfaceOverlayOptions,
-} from "../engine/surface-overlay";
+import type { SurfaceOverlayOptions } from "../engine/surface-overlay";
+import { SurfaceOverlays } from "../engine/surface-overlays";
 import { DomResources } from "./dom-resources";
 import { readDomScene } from "./dom-scene";
 import { RitoHost } from "./rito-host";
@@ -16,6 +14,7 @@ interface RitoSurfaceOptions {
   provider: HTMLElement;
   source: HTMLElement;
   maxPixelRatio: number;
+  sourceMode: GradientBlurSourceMode;
   onReady(surface: RitoSurface): void;
   onFailure(error: unknown): void;
 }
@@ -27,13 +26,14 @@ export class RitoSurface implements BlurSurface {
   private readonly interaction: RitoInteraction;
   private readonly queue: FrameQueue;
   private readonly detach: () => void;
-  private readonly overlays = new Set<SurfaceOverlay>();
+  private readonly overlays: SurfaceOverlays;
   private ready = false;
   private disposed = false;
   private redraw = false;
   private scrollSensitive = false;
   private viewport = "";
   private selection = "";
+  private sourceDirty = true;
 
   constructor(private readonly options: RitoSurfaceOptions) {
     this.host = new RitoHost(options.provider, options.source);
@@ -44,16 +44,30 @@ export class RitoSurface implements BlurSurface {
       throw error;
     }
     this.queue = new FrameQueue(this.render, this.fail);
-    this.interaction = new RitoInteraction(options.source, () =>
-      this.queue.request(),
+    this.overlays = new SurfaceOverlays(
+      this.host.canvas,
+      this.scene,
+      options.sourceMode,
+      () => {
+        if (this.disposed) return;
+        this.redraw = true;
+        this.queue.request();
+      },
     );
+    this.interaction = new RitoInteraction(options.source, () => {
+      if (options.sourceMode !== "static") this.queue.request();
+    });
     this.detach = attachSurfaceEvents(options.source, this.host.canvas, {
       content: (change) => {
         if (change.kind === "fonts") this.resources.fontsChanged();
         if (change.kind === "image") this.resources.imageLoaded(change.element);
+        if (options.sourceMode === "static") return;
         this.queue.request(true);
       },
-      scroll: (nested) => this.queue.request(nested || this.scrollSensitive),
+      scroll: (nested) => {
+        if (options.sourceMode !== "static")
+          this.queue.request(nested || this.scrollSensitive);
+      },
       scrollEnd: () => this.request("scrollend"),
       resize: () => {
         this.request("resize");
@@ -70,53 +84,31 @@ export class RitoSurface implements BlurSurface {
 
   register(options: SurfaceOverlayOptions): () => void {
     if (this.disposed) return () => {};
-    let overlay: SurfaceOverlay;
     try {
-      overlay = new SurfaceOverlay(this.host.canvas, this.scene, options);
+      return this.overlays.register(options);
     } catch (error) {
       this.fail(error);
       return () => {};
     }
-    this.overlays.add(overlay);
-    const observer = new ResizeObserver(() => {
-      overlay.request("resize");
-      this.redraw = true;
-      this.queue.request();
-    });
-    observer.observe(options.element);
-    this.redraw = true;
-    this.queue.request();
-    return () => {
-      observer.disconnect();
-      if (this.overlays.delete(overlay)) overlay.dispose();
-      this.redraw = true;
-      this.queue.request();
-    };
   }
 
   request(reason: CaptureReason): void {
     if (this.disposed) return;
+    if (reason === "scrollend" && this.options.sourceMode === "static") return;
     if (reason === "manual") this.resources.invalidate();
-    let requested = false;
-    for (const overlay of this.overlays) {
-      if (reason === "scrollend" && overlay.options.strategy !== "scrollend")
-        continue;
-      overlay.request(reason);
-      requested = true;
-    }
+    const requested = this.overlays.request(reason);
     if (reason === "scrollend" && !requested) return;
     this.redraw = true;
+    if (reason !== "scrollend") this.sourceDirty = true;
     this.queue.request(reason !== "scrollend");
   }
 
   setRadius(element: HTMLElement, radius: number): void {
-    for (const overlay of this.overlays) {
-      if (overlay.options.element !== element) continue;
-      overlay.options.maxRadius = radius;
-      overlay.request("manual");
-    }
-    this.redraw = true;
-    this.queue.request();
+    if (!this.disposed) this.overlays.setRadius(element, radius);
+  }
+
+  requestOverlay(element: HTMLElement): void {
+    if (!this.disposed) this.overlays.requestOverlay(element);
   }
 
   dispose(): void {
@@ -125,8 +117,7 @@ export class RitoSurface implements BlurSurface {
     this.queue.dispose();
     this.detach();
     this.interaction.dispose();
-    for (const overlay of this.overlays) overlay.dispose();
-    this.overlays.clear();
+    this.overlays.dispose();
     this.resources.dispose();
     this.scene.dispose();
     this.host.dispose();
@@ -140,6 +131,14 @@ export class RitoSurface implements BlurSurface {
     if (source.clientWidth < 1 || source.clientHeight < 1) return;
     const ratio = Math.min(window.devicePixelRatio || 1, maxPixelRatio);
     const startedAt = performance.now();
+    if (this.options.sourceMode === "static") {
+      if (this.ready && !this.sourceDirty) {
+        if (this.redraw) this.paintOverlays(ratio, 0, false);
+        return;
+      }
+      readContent = true;
+    }
+    this.sourceDirty = false;
     if (readContent || !this.ready) {
       if (!this.ready) await document.fonts.ready;
       const snapshot = await readDomScene(
@@ -167,6 +166,7 @@ export class RitoSurface implements BlurSurface {
       source.scrollLeft !== beforeScroll[0] ||
       source.scrollTop !== beforeScroll[1]
     ) {
+      this.sourceDirty = true;
       this.queue.request();
       return;
     }
@@ -191,40 +191,44 @@ export class RitoSurface implements BlurSurface {
     this.viewport = viewport;
     this.selection = selection;
     if (contentChanged) this.scene.compose(source, ratio, layers);
-    this.scene.draw();
-    canvas.dataset.ritoScrollTop = String(source.scrollTop);
-    canvas.dataset.ritoScrollLeft = String(source.scrollLeft);
-    const captureMs = performance.now() - startedAt;
-    for (const overlay of this.overlays)
-      overlay.paint({
-        canvas,
-        scene: this.scene,
-        source,
-        pixelRatio: ratio,
-        sourceBounds: canvas.getBoundingClientRect(),
-        adapterId: "rito",
-        captureCount: this.scene.tiles.paintCount,
-        sourceUploadMs: this.scene.tiles.uploadMs,
-        timestamp: performance.now(),
-        captureMs,
-        contentChanged,
-        cacheKey: JSON.stringify([
-          this.scene.tiles.contentVersion,
-          viewport,
-          selection,
-          overlay.options.direction,
-          overlay.options.maxRadius,
-          overlay.options.algorithm ?? "compact9",
-          overlay.options.blurCurve ?? null,
-        ]),
-      });
-    this.redraw = false;
+    this.paintOverlays(ratio, performance.now() - startedAt, contentChanged);
     this.host.show();
     if (!this.ready) {
       this.ready = true;
       this.options.onReady(this);
     }
   };
+
+  private paintOverlays(
+    ratio: number,
+    captureMs: number,
+    contentChanged: boolean,
+  ) {
+    const { source } = this.options;
+    const canvas = this.host.canvas;
+    this.scene.draw();
+    canvas.dataset.ritoScrollTop = String(source.scrollTop);
+    canvas.dataset.ritoScrollLeft = String(source.scrollLeft);
+    this.overlays.paint({
+      canvas,
+      scene: this.scene,
+      source,
+      pixelRatio: ratio,
+      sourceBounds: canvas.getBoundingClientRect(),
+      adapterId: "rito",
+      captureCount: this.scene.tiles.paintCount,
+      sourceUploadMs: this.scene.tiles.uploadMs,
+      timestamp: performance.now(),
+      captureMs,
+      contentChanged,
+      cacheKey: JSON.stringify([
+        this.scene.tiles.contentVersion,
+        this.viewport,
+        this.selection,
+      ]),
+    });
+    this.redraw = false;
+  }
 
   private fail = (error: unknown): void => {
     this.dispose();

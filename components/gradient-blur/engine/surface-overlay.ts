@@ -1,17 +1,22 @@
-import { createAtlasLayout } from "./atlas-layout";
-import { GradientBlurRenderer } from "./GradientBlurRenderer";
+import { OverlayRenderer } from "./OverlayRenderer";
+import { overlayViewport } from "./overlay-viewport";
+import { overlayCapture } from "./overlay-capture";
+import { resolveOverlayMode, type OverlayRenderProfile } from "./overlay-mode";
+import type { ResolvedBlurMask } from "../mask/types";
 import { createReadyMetrics } from "./metrics";
 import { RenderMetrics } from "./render-metrics";
 import type {
   CaptureReason,
   CaptureStrategy,
   GradientBlurMetrics,
-  GradientBlurProfile,
   GradientBlurPhase,
 } from "../types";
 import type { SceneTexture } from "./blur-surface";
+import type { StaticUniformCache } from "./static-uniform-cache";
+import { paintStaticOverlay } from "./static-overlay";
 
-export interface SurfaceOverlayOptions extends GradientBlurProfile {
+export interface SurfaceOverlayOptions extends OverlayRenderProfile {
+  mask?: ResolvedBlurMask;
   element: HTMLElement;
   strategy: CaptureStrategy;
   onPhase(phase: GradientBlurPhase): void;
@@ -32,11 +37,12 @@ export interface SurfaceFrame {
   contentChanged: boolean;
   /** Stable document-window identity supplied by tile-backed surfaces. */
   cacheKey?: string;
+  staticUniformCache?: StaticUniformCache;
 }
 
 export class SurfaceOverlay {
-  private readonly renderer: GradientBlurRenderer;
-  private readonly cachedRenderers = new Map<string, GradientBlurRenderer>();
+  private activeRenderer?: OverlayRenderer;
+  private readonly cachedRenderers = new Map<string, OverlayRenderer>();
   private readonly metrics: RenderMetrics;
   private pending: CaptureReason | null = "initial";
   private valid = false;
@@ -44,11 +50,18 @@ export class SurfaceOverlay {
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    scene: SceneTexture,
+    private readonly scene: SceneTexture,
     readonly options: SurfaceOverlayOptions,
   ) {
     this.metrics = new RenderMetrics(options.onMetrics);
-    this.renderer = new GradientBlurRenderer(canvas, scene.gl);
+  }
+
+  private get renderer() {
+    return (this.activeRenderer ??= new OverlayRenderer(
+      this.canvas,
+      this.scene.gl,
+      this.options.mask,
+    ));
   }
 
   request(reason: CaptureReason): void {
@@ -64,20 +77,42 @@ export class SurfaceOverlay {
   paint(frame: SurfaceFrame): void {
     const { canvas, source, scene, timestamp } = frame;
     const { element, direction, strategy } = this.options;
-    const canvasBounds = canvas.getBoundingClientRect();
+    const mode = resolveOverlayMode(direction, this.options.mask);
     const sourceBounds = frame.sourceBounds ?? source.getBoundingClientRect();
     const overlayBounds = element.getBoundingClientRect();
-    const width = Math.min(overlayBounds.width, sourceBounds.width);
-    const height = Math.min(overlayBounds.height, sourceBounds.height);
-    if (width <= 0 || height <= 0) return;
-    const scaleX = canvas.width / canvasBounds.width;
-    const scaleY = canvas.height / canvasBounds.height;
+    const capture = overlayCapture(
+      canvas,
+      sourceBounds,
+      overlayBounds,
+      this.options,
+      mode !== "gradient",
+    );
+    if (!capture) return;
     const pixelRatio = frame.pixelRatio;
     const reason =
       this.pending ??
       (frame.contentChanged && strategy === "live" ? "live" : null);
     if (frame.contentChanged && strategy !== "live" && !reason)
       this.invalidate();
+
+    if (mode === "uniform" && frame.staticUniformCache) {
+      if (!reason && !this.valid) return;
+      const metrics = paintStaticOverlay(
+        frame,
+        this.options,
+        frame.staticUniformCache,
+        reason ?? "resize",
+      );
+      if (!metrics) return;
+      this.metrics.latest = metrics;
+      if (!this.valid) this.options.onPhase("ready");
+      this.valid = true;
+      this.pending = null;
+      this.metrics.record(timestamp);
+      this.metrics.publish(Boolean(reason && reason !== "live"), timestamp);
+      return;
+    }
+    delete element.dataset.gradientBlurShared;
 
     // Rito's live path moves the viewport on every scroll event. Its cache key
     // therefore changes every frame and would churn GPU programs and targets;
@@ -92,32 +127,23 @@ export class SurfaceOverlay {
     const wasValid = this.valid;
     if (reason && !cacheHit) {
       const startedAt = performance.now();
-      const sourceWidth = Math.max(1, Math.round(width * pixelRatio));
-      const sourceHeight = Math.max(1, Math.round(height * pixelRatio));
-      const atlas = createAtlasLayout(
+      const sourceWidth = capture.width;
+      const sourceHeight = capture.height;
+      const atlas = renderer.createLayout(
         sourceWidth,
         sourceHeight,
-        this.options.maxRadius,
+        this.options,
         pixelRatio,
-        this.options.blurCurve,
+        capture.sampleRegion,
       );
       const atlasBuildMs = performance.now() - startedAt;
       const uploadStartedAt = performance.now();
       renderer.uploadGpuAtlas(
         scene.framebuffer,
-        {
-          x: (sourceBounds.left - canvasBounds.left) * scaleX,
-          y:
-            (sourceBounds.top -
-              canvasBounds.top +
-              (direction === "bottom" ? sourceBounds.height - height : 0)) *
-            scaleY,
-          width: width * scaleX,
-          height: height * scaleY,
-        },
+        capture.crop,
         atlas,
         this.options,
-        { width, height },
+        capture.view,
       );
       this.metrics.latest = createReadyMetrics({
         adapterId: frame.adapterId ?? "html-in-canvas",
@@ -127,6 +153,7 @@ export class SurfaceOverlay {
         captureCount: frame.captureCount ?? ++this.count,
         captureMs: frame.captureMs,
         direction,
+        mode,
         strategy,
         liveCapture: strategy === "live" ? "continuous" : "snapshot",
         pixelRatio,
@@ -154,54 +181,36 @@ export class SurfaceOverlay {
     renderer = this.renderer,
   ): boolean {
     if (!this.valid) return false;
-    const bounds = canvas.getBoundingClientRect();
-    const overlay = this.options.element.getBoundingClientRect();
-    const region = sourceBounds
-      ? {
-          left: Math.max(overlay.left, sourceBounds.left),
-          bottom: Math.min(overlay.bottom, sourceBounds.bottom),
-          width: Math.max(
-            0,
-            Math.min(overlay.right, sourceBounds.right) -
-              Math.max(overlay.left, sourceBounds.left),
-          ),
-          height: Math.max(
-            0,
-            Math.min(overlay.bottom, sourceBounds.bottom) -
-              Math.max(overlay.top, sourceBounds.top),
-          ),
-        }
-      : overlay;
-    const scaleX = canvas.width / bounds.width;
-    const scaleY = canvas.height / bounds.height;
-    renderer.render(this.options, {
-      x: Math.round((region.left - bounds.left) * scaleX),
-      y: Math.round((bounds.bottom - region.bottom) * scaleY),
-      width: Math.round(region.width * scaleX),
-      height: Math.round(region.height * scaleY),
-    });
+    renderer.render(
+      this.options,
+      overlayViewport(canvas, this.options.element, sourceBounds),
+    );
     return true;
   }
 
   dispose(): void {
     this.options.onPhase("fallback");
-    this.renderer.dispose();
+    this.activeRenderer?.dispose();
     for (const renderer of this.cachedRenderers.values()) renderer.dispose();
     this.cachedRenderers.clear();
   }
 
-  private rendererFor(cacheKey: string): GradientBlurRenderer {
+  private rendererFor(cacheKey: string): OverlayRenderer {
     const cached = this.cachedRenderers.get(cacheKey);
     if (cached) {
       this.cachedRenderers.delete(cacheKey);
       this.cachedRenderers.set(cacheKey, cached);
       return cached;
     }
-    const renderer = new GradientBlurRenderer(this.canvas, this.renderer.gl);
+    const renderer = new OverlayRenderer(
+      this.canvas,
+      this.renderer.gl,
+      this.options.mask,
+    );
     this.cachedRenderers.set(cacheKey, renderer);
     while (this.cachedRenderers.size > 3) {
       const oldest = this.cachedRenderers.entries().next().value as
-        [string, GradientBlurRenderer] | undefined;
+        [string, OverlayRenderer] | undefined;
       if (!oldest) break;
       oldest[1].dispose();
       this.cachedRenderers.delete(oldest[0]);

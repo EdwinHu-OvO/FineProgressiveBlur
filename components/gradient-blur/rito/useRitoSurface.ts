@@ -7,6 +7,7 @@ import {
   type RefObject,
 } from "react";
 import { RitoSurface } from "./rito-surface";
+import type { GradientBlurSourceMode } from "../types";
 
 interface SurfaceState {
   surface: RitoSurface | null;
@@ -36,6 +37,7 @@ interface SurfaceOptions {
   resolveSource(): HTMLElement | null;
   maxPixelRatio: number;
   refreshKey: string;
+  sourceMode: GradientBlurSourceMode;
 }
 
 export function useRitoSurface({
@@ -44,6 +46,7 @@ export function useRitoSurface({
   resolveSource,
   maxPixelRatio,
   refreshKey,
+  sourceMode,
 }: SurfaceOptions): SurfaceState {
   const [store] = useState(() => new SurfaceStore());
   const state = useSyncExternalStore(
@@ -80,6 +83,7 @@ export function useRitoSurface({
         provider,
         source,
         maxPixelRatio,
+        sourceMode,
         onReady: (value) => store.set(value),
         onFailure: failure,
       });
@@ -90,6 +94,14 @@ export function useRitoSurface({
       surface?.dispose();
       store.set(null, true);
     };
-  }, [enabled, providerRef, resolveSource, maxPixelRatio, refreshKey, store]);
+  }, [
+    enabled,
+    providerRef,
+    resolveSource,
+    maxPixelRatio,
+    refreshKey,
+    sourceMode,
+    store,
+  ]);
   return state;
 }

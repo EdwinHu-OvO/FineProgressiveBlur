@@ -9,5 +9,7 @@ export interface SceneTexture {
 export interface BlurSurface {
   register(options: SurfaceOverlayOptions): () => void;
   request(reason: CaptureReason): void;
+  /** Geometry-only invalidation; must not recapture the Provider's source. */
+  requestOverlay(element: HTMLElement): void;
   setRadius(element: HTMLElement, radius: number): void;
 }

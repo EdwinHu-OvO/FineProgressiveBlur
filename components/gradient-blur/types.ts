@@ -9,10 +9,12 @@ import type {
 export const GRADIENT_BLUR_SAMPLE_COUNT = 9;
 
 export type CaptureStrategy = "static" | "scrollend" | "live";
+export type GradientBlurSourceMode = "live" | "static";
 export type GradientBlurBackend = "auto" | "html-in-canvas" | "rito";
 export type GradientBlurActiveBackend =
   "pending" | "html-in-canvas" | "rito" | "css" | "unavailable";
 export type GradientBlurDirection = "top" | "bottom";
+export type GradientBlurMode = "uniform" | "gradient" | "mask";
 export type GradientBlurPhase = "idle" | "capturing" | "ready" | "fallback";
 export type CaptureReason =
   "initial" | "resize" | "scrollend" | "live" | "manual";
@@ -33,10 +35,15 @@ export interface GradientBlurBandMetrics {
   atlasHeight: number;
   coreStart: number;
   coreEnd: number;
+  /** Normalized horizontal core bounds and fixed CSS sigma for mask patches. */
+  coreLeft?: number;
+  coreRight?: number;
+  sigma?: number;
 }
 
 export interface GradientBlurMetrics {
-  direction: GradientBlurDirection;
+  mode: GradientBlurMode;
+  direction?: GradientBlurDirection;
   strategy: CaptureStrategy;
   phase: GradientBlurPhase;
   captureCount: number;
@@ -57,6 +64,8 @@ export interface GradientBlurMetrics {
   reason?: CaptureReason;
   error?: string;
   bands: readonly GradientBlurBandMetrics[];
+  /** Provider-owned uniform texture identity; equal keys share one allocation. */
+  sharedTexture?: string;
 }
 
 export interface GradientBlurProviderHandle {
@@ -70,6 +79,8 @@ export interface GradientBlurProviderProps extends Omit<
   children: ReactNode;
   sourceRef?: RefObject<HTMLElement | null>;
   captureBackend?: GradientBlurBackend;
+  /** Static sources update on initialization, size/DPR changes and ref.refresh(). */
+  sourceMode?: GradientBlurSourceMode;
   algorithm?: GradientBlurAlgorithm;
   blurCurve?: GradientBlurBezier;
   onBackendChange?: (backend: GradientBlurActiveBackend) => void;
@@ -78,18 +89,27 @@ export interface GradientBlurProviderProps extends Omit<
   fallback?: "css" | "transparent";
 }
 
-export interface GradientBlurOverlayProps extends Omit<
+interface GradientBlurOverlayBaseProps extends Omit<
   HTMLAttributes<HTMLDivElement>,
   "children" | "onError"
 > {
-  direction: GradientBlurDirection;
+  /** Defaults to 100px for direction gradients, otherwise the full container. */
   height?: number | string;
+  /** CSS sigma: constant in uniform mode, maximum in gradient and mask modes. */
   maxRadius?: number;
   algorithm?: GradientBlurAlgorithm;
+  /** Only applies when direction selects the gradient pipeline. */
   blurCurve?: GradientBlurBezier;
   captureStrategy?: CaptureStrategy;
   onMetrics?: (metrics: GradientBlurMetrics) => void;
 }
+
+/** Omit both selectors for uniform blur. Direction and mask are exclusive. */
+export type GradientBlurOverlayProps = GradientBlurOverlayBaseProps &
+  (
+    | { direction: GradientBlurDirection; mask?: never }
+    | { direction?: never; mask?: import("./mask/types").BlurMask }
+  );
 
 export interface GradientBlurProfile {
   direction: GradientBlurDirection;

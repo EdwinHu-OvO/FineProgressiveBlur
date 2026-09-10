@@ -1,16 +1,15 @@
-import type { CaptureReason } from "../types";
+import type { CaptureReason, GradientBlurSourceMode } from "../types";
 import { attachScrollEvents } from "../capture/scroll-events";
 import { NativeHost } from "./native-host";
-import {
-  SurfaceOverlay,
-  type SurfaceOverlayOptions,
-} from "../engine/surface-overlay";
+import type { SurfaceOverlayOptions } from "../engine/surface-overlay";
+import { SurfaceOverlays } from "../engine/surface-overlays";
 import { NativeScene } from "./native-scene";
 
 export interface NativeSurfaceOptions {
   provider: HTMLDivElement;
   resolveSource(): HTMLElement | null;
   maxPixelRatio: number;
+  sourceMode: GradientBlurSourceMode;
   onReady(surface: NativeSurface): void;
   onFailure(error: unknown): void;
 }
@@ -19,7 +18,7 @@ export interface NativeSurfaceOptions {
 export class NativeSurface {
   private readonly host: NativeHost;
   private readonly scene: NativeScene;
-  private readonly overlays = new Set<SurfaceOverlay>();
+  private readonly overlays: SurfaceOverlays;
   private readonly resizeObserver: ResizeObserver;
   private readonly intersectionObserver: IntersectionObserver;
   private readonly detachScroll: () => void;
@@ -28,6 +27,8 @@ export class NativeSurface {
   private ready = false;
   private disposed = false;
   private redrawRequested = true;
+  private captureRequested = true;
+  private captureCount = 0;
 
   constructor(private readonly options: NativeSurfaceOptions) {
     const sourceBeforeHost = options.resolveSource();
@@ -41,23 +42,31 @@ export class NativeSurface {
       this.host.dispose();
       throw error;
     }
+    this.overlays = new SurfaceOverlays(
+      this.host.canvas,
+      this.scene,
+      options.sourceMode,
+      () => {
+        if (this.disposed) return;
+        this.redrawRequested = true;
+        this.host.canvas.requestPaint();
+      },
+    );
     this.resizeObserver = new ResizeObserver(() => this.request("resize"));
     this.resizeObserver.observe(options.provider);
     const source = options.resolveSource();
     if (source) this.resizeObserver.observe(source);
     this.intersectionObserver = new IntersectionObserver(([entry]) => {
       this.visible = entry.isIntersecting;
-      if (this.visible) this.request("manual");
+      if (this.visible) this.resume();
     });
     this.intersectionObserver.observe(options.provider);
     this.host.canvas.addEventListener("paint", this.paint);
     this.host.canvas.addEventListener("webglcontextlost", this.contextLost);
     this.detachScroll = attachScrollEvents(options.provider, {
       onScroll: () => {
-        for (const overlay of this.overlays) {
-          if (overlay.options.strategy === "live") overlay.request("live");
-          else overlay.invalidate();
-        }
+        if (options.sourceMode === "static") return;
+        this.overlays.scroll();
         // requestPaint delivers a fresh layout snapshot; rAF can be too early.
         this.host.canvas.requestPaint();
       },
@@ -86,51 +95,33 @@ export class NativeSurface {
       );
       return () => {};
     }
-    let overlay: SurfaceOverlay;
     try {
-      overlay = new SurfaceOverlay(this.host.canvas, this.scene, options);
+      return this.overlays.register(options);
     } catch (error) {
       this.fail(error);
       return () => {};
     }
-    this.overlays.add(overlay);
-    this.resizeObserver.observe(options.element);
-    this.request("initial");
-    return () => {
-      this.resizeObserver.unobserve(options.element);
-      this.overlays.delete(overlay);
-      this.redrawRequested = true;
-      overlay.dispose();
-      if (!this.disposed) this.host.canvas.requestPaint();
-    };
   }
 
   request(reason: CaptureReason): void {
     if (this.disposed) return;
-    let requested = false;
-    for (const overlay of this.overlays) {
-      if (reason !== "scrollend" || overlay.options.strategy === "scrollend") {
-        overlay.request(reason);
-        requested = true;
-      }
-    }
+    if (reason === "scrollend" && this.options.sourceMode === "static") return;
+    const requested = this.overlays.request(reason);
     if (reason === "scrollend" && !requested) return;
     this.redrawRequested = true;
+    if (reason === "manual" || reason === "resize")
+      this.captureRequested = true;
     this.host.resize(this.pixelRatio);
     this.host.canvas.requestPaint();
   }
 
   setRadius(element: HTMLElement, radius: number): void {
     if (this.disposed) return;
-    this.redrawRequested = true;
-    for (const overlay of this.overlays) {
-      if (overlay.options.element === element) {
-        overlay.options.maxRadius = radius;
-        overlay.request("manual");
-      }
-    }
-    // Radius changes also change LOD boundaries, so rebuild in the next paint.
-    this.host.canvas.requestPaint();
+    this.overlays.setRadius(element, radius);
+  }
+
+  requestOverlay(element: HTMLElement): void {
+    if (!this.disposed) this.overlays.requestOverlay(element);
   }
 
   dispose(): void {
@@ -145,8 +136,7 @@ export class NativeSurface {
     this.host.canvas.removeEventListener("webglcontextlost", this.contextLost);
     this.detachScroll();
     document.removeEventListener("visibilitychange", this.visibility);
-    for (const overlay of this.overlays) overlay.invalidate();
-    // React owns layer cleanup; releasing shared scene storage is independent.
+    this.overlays.dispose();
     this.scene.dispose();
     this.host.dispose();
     if (source && scroll) {
@@ -170,7 +160,11 @@ export class NativeSurface {
     const changed = (event as Event & { changedElements?: readonly Element[] })
       .changedElements;
     const contentChanged =
-      !this.ready || !changed || changed.includes(this.host.drawable);
+      this.captureRequested ||
+      this.scene.needsResize ||
+      !this.ready ||
+      (this.options.sourceMode !== "static" &&
+        (!changed || changed.includes(this.host.drawable)));
     if (!contentChanged && !this.redrawRequested) return;
     try {
       const source = this.options.resolveSource();
@@ -182,21 +176,24 @@ export class NativeSurface {
         throw new Error("Native capture requires a source inside the Provider");
       }
       const startedAt = performance.now();
-      if (contentChanged || this.scene.needsResize)
+      if (contentChanged) {
         this.scene.capture(this.host.drawable);
+        this.captureRequested = false;
+        this.captureCount++;
+      }
       const captureMs = performance.now() - startedAt;
       this.scene.draw();
       const timestamp = performance.now();
-      for (const overlay of this.overlays)
-        overlay.paint({
-          canvas: this.host.canvas,
-          scene: this.scene,
-          source,
-          captureMs,
-          timestamp,
-          pixelRatio: this.pixelRatio,
-          contentChanged,
-        });
+      this.overlays.paint({
+        canvas: this.host.canvas,
+        scene: this.scene,
+        source,
+        captureMs,
+        timestamp,
+        pixelRatio: this.pixelRatio,
+        contentChanged,
+        captureCount: this.captureCount,
+      });
       this.redrawRequested = false;
       if (!this.ready) {
         this.ready = true;
@@ -209,8 +206,16 @@ export class NativeSurface {
   };
 
   private visibility = (): void => {
-    if (document.visibilityState !== "hidden") this.request("manual");
+    if (document.visibilityState !== "hidden") this.resume();
   };
+
+  private resume(): void {
+    if (this.options.sourceMode !== "static") this.request("manual");
+    else {
+      this.redrawRequested = true;
+      this.host.canvas.requestPaint();
+    }
+  }
 
   private contextLost = (event: Event): void => {
     event.preventDefault();

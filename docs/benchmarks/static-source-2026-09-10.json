@@ -1,0 +1,1028 @@
+{
+  "date": "2026-09-10",
+  "api": {
+    "provider": "sourceMode=\"static\"",
+    "invalidate": "ref.refresh()",
+    "sharing": "Uniform overlays with equal radius/algorithm/DPR and source version share a full-source Gaussian result."
+  },
+  "checks": {
+    "lint": "passed",
+    "typecheck": "passed",
+    "testFiles": 19,
+    "tests": 81
+  },
+  "environment": {
+    "browser": "Chromium 153.0.8010.12",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "mode": "Next.js development / headless, ANGLE Metal",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "dpr": 2
+    },
+    "radiusCssPx": 48
+  },
+  "scroll": {
+    "method": "Warm for 1200 ms, scroll window from 0 to about 1056 CSS px over 3000 ms with requestAnimationFrame, then settle 500 ms. Multiple independent visible Overlay nodes share one static uniform texture.",
+    "counters": {
+      "draws": "drawArrays, including normal scene and overlay presentation",
+      "gaussian": "drawArrays with uResampleVariance in program source",
+      "encoded": "drawArrays with encoded() color conversion in program source",
+      "blits": "blitFramebuffer",
+      "allocations": "texImage2D / texStorage2D storage requests",
+      "sourceUploads": "Canvas / ImageBitmap texture uploads",
+      "nativeUploads": "texElementImage2D; wrapper preserves method arity for capability detection"
+    },
+    "results": [
+      {
+        "backend": "rito",
+        "scrollY": 1056,
+        "frames": 181,
+        "meanMs": 16.66581215469613,
+        "p95Ms": 16.700000000000728,
+        "duringScroll": {
+          "draws": 1451,
+          "gaussian": 0,
+          "encoded": 0,
+          "blits": 0,
+          "allocations": 0,
+          "sourceUploads": 0,
+          "nativeUploads": 0
+        },
+        "includingSettled": {
+          "draws": 1467,
+          "gaussian": 0,
+          "encoded": 0,
+          "blits": 0,
+          "allocations": 0,
+          "sourceUploads": 0,
+          "nativeUploads": 0
+        },
+        "errors": []
+      },
+      {
+        "backend": "html-in-canvas",
+        "scrollY": 1056,
+        "frames": 181,
+        "meanMs": 16.665447513812154,
+        "p95Ms": 16.799999999999727,
+        "duringScroll": {
+          "draws": 1451,
+          "gaussian": 0,
+          "encoded": 0,
+          "blits": 0,
+          "allocations": 0,
+          "sourceUploads": 0,
+          "nativeUploads": 0
+        },
+        "includingSettled": {
+          "draws": 1467,
+          "gaussian": 0,
+          "encoded": 0,
+          "blits": 0,
+          "allocations": 0,
+          "sourceUploads": 0,
+          "nativeUploads": 0
+        },
+        "errors": []
+      }
+    ]
+  },
+  "lifecycle": {
+    "method": "Two, then three real overlays. Read a 1x1 RGBA sample synchronously after draws to verify frozen source and explicit refresh. This check measures correctness and call counts, not GPU timing.",
+    "results": [
+      {
+        "backend": "rito",
+        "initial": {
+          "backend": "rito",
+          "mode": "static",
+          "draws": 12,
+          "gaussian": 2,
+          "encoded": 1,
+          "blits": 2,
+          "uploads": 1,
+          "sample": [223, 49, 70, 255],
+          "shared": ["1:842:546:2:12:compact9", "1:842:546:2:12:compact9"],
+          "last": "1:842:546:2:12:compact9"
+        },
+        "moved": {
+          "backend": "rito",
+          "mode": "static",
+          "draws": 15,
+          "gaussian": 2,
+          "encoded": 1,
+          "blits": 2,
+          "uploads": 1,
+          "sample": [223, 49, 70, 255],
+          "shared": ["1:842:546:2:12:compact9", "1:842:546:2:12:compact9"],
+          "last": "1:842:546:2:12:compact9"
+        },
+        "changed": {
+          "backend": "rito",
+          "mode": "static",
+          "draws": 15,
+          "gaussian": 2,
+          "encoded": 1,
+          "blits": 2,
+          "uploads": 1,
+          "sample": [223, 49, 70, 255],
+          "shared": ["1:842:546:2:12:compact9", "1:842:546:2:12:compact9"],
+          "last": "1:842:546:2:12:compact9"
+        },
+        "added": {
+          "backend": "rito",
+          "mode": "static",
+          "draws": 23,
+          "gaussian": 2,
+          "encoded": 1,
+          "blits": 2,
+          "uploads": 1,
+          "sample": [223, 49, 70, 255],
+          "shared": [
+            "1:842:546:2:12:compact9",
+            "1:842:546:2:12:compact9",
+            "1:842:546:2:12:compact9"
+          ],
+          "last": "1:842:546:2:12:compact9"
+        },
+        "refreshed": {
+          "backend": "rito",
+          "mode": "static",
+          "draws": 32,
+          "gaussian": 4,
+          "encoded": 2,
+          "blits": 4,
+          "uploads": 2,
+          "sample": [39, 187, 108, 255],
+          "shared": [
+            "2:842:546:2:12:compact9",
+            "2:842:546:2:12:compact9",
+            "2:842:546:2:12:compact9"
+          ],
+          "last": "2:842:546:2:12:compact9"
+        },
+        "otherRadius": {
+          "backend": "rito",
+          "mode": "static",
+          "draws": 39,
+          "gaussian": 6,
+          "encoded": 3,
+          "blits": 5,
+          "uploads": 2,
+          "sample": [39, 187, 108, 255],
+          "shared": [
+            "2:842:546:2:12:compact9",
+            "2:842:546:2:4:compact9",
+            "2:842:546:2:4:compact9"
+          ],
+          "last": "2:842:546:2:4:compact9"
+        },
+        "dpr": {
+          "backend": "rito",
+          "mode": "static",
+          "draws": 52,
+          "gaussian": 10,
+          "encoded": 5,
+          "blits": 7,
+          "uploads": 3,
+          "sample": [39, 187, 108, 255],
+          "shared": [
+            "1:421:273:1:12:compact9",
+            "1:421:273:1:4:compact9",
+            "1:421:273:1:4:compact9"
+          ],
+          "last": "1:421:273:1:4:compact9"
+        },
+        "live": {
+          "backend": "rito",
+          "mode": "live",
+          "draws": 79,
+          "gaussian": 18,
+          "encoded": 11,
+          "blits": 11,
+          "uploads": 5,
+          "sample": [52, 92, 209, 255],
+          "shared": [null, null, null]
+        },
+        "errors": []
+      },
+      {
+        "backend": "html-in-canvas",
+        "initial": {
+          "backend": "html-in-canvas",
+          "mode": "static",
+          "draws": 9,
+          "gaussian": 2,
+          "encoded": 1,
+          "blits": 1,
+          "uploads": 1,
+          "sample": [223, 49, 70, 255],
+          "shared": ["1:842:546:2:12:compact9", "1:842:546:2:12:compact9"],
+          "last": "1:842:546:2:12:compact9"
+        },
+        "moved": {
+          "backend": "html-in-canvas",
+          "mode": "static",
+          "draws": 12,
+          "gaussian": 2,
+          "encoded": 1,
+          "blits": 1,
+          "uploads": 1,
+          "sample": [223, 49, 70, 255],
+          "shared": ["1:842:546:2:12:compact9", "1:842:546:2:12:compact9"],
+          "last": "1:842:546:2:12:compact9"
+        },
+        "changed": {
+          "backend": "html-in-canvas",
+          "mode": "static",
+          "draws": 12,
+          "gaussian": 2,
+          "encoded": 1,
+          "blits": 1,
+          "uploads": 1,
+          "sample": [223, 49, 70, 255],
+          "shared": ["1:842:546:2:12:compact9", "1:842:546:2:12:compact9"],
+          "last": "1:842:546:2:12:compact9"
+        },
+        "added": {
+          "backend": "html-in-canvas",
+          "mode": "static",
+          "draws": 16,
+          "gaussian": 2,
+          "encoded": 1,
+          "blits": 1,
+          "uploads": 1,
+          "sample": [223, 49, 70, 255],
+          "shared": [
+            "1:842:546:2:12:compact9",
+            "1:842:546:2:12:compact9",
+            "1:842:546:2:12:compact9"
+          ],
+          "last": "1:842:546:2:12:compact9"
+        },
+        "refreshed": {
+          "backend": "html-in-canvas",
+          "mode": "static",
+          "draws": 25,
+          "gaussian": 4,
+          "encoded": 2,
+          "blits": 2,
+          "uploads": 2,
+          "sample": [39, 187, 108, 255],
+          "shared": [
+            "2:842:546:2:12:compact9",
+            "2:842:546:2:12:compact9",
+            "2:842:546:2:12:compact9"
+          ],
+          "last": "2:842:546:2:12:compact9"
+        },
+        "otherRadius": {
+          "backend": "html-in-canvas",
+          "mode": "static",
+          "draws": 32,
+          "gaussian": 6,
+          "encoded": 3,
+          "blits": 3,
+          "uploads": 2,
+          "sample": [39, 187, 108, 255],
+          "shared": [
+            "2:842:546:2:12:compact9",
+            "2:842:546:2:4:compact9",
+            "2:842:546:2:4:compact9"
+          ],
+          "last": "2:842:546:2:4:compact9"
+        },
+        "dpr": {
+          "backend": "html-in-canvas",
+          "mode": "static",
+          "draws": 45,
+          "gaussian": 10,
+          "encoded": 5,
+          "blits": 4,
+          "uploads": 3,
+          "sample": [39, 187, 108, 255],
+          "shared": [
+            "1:421:273:1:12:compact9",
+            "1:421:273:1:4:compact9",
+            "1:421:273:1:4:compact9"
+          ],
+          "last": "1:421:273:1:4:compact9"
+        },
+        "live": {
+          "backend": "html-in-canvas",
+          "mode": "live",
+          "draws": 72,
+          "gaussian": 18,
+          "encoded": 11,
+          "blits": 6,
+          "uploads": 5,
+          "sample": [52, 92, 209, 255],
+          "shared": [null, null, null]
+        },
+        "errors": []
+      }
+    ]
+  },
+  "pixelComparison": {
+    "reference": "Existing full-source uniform renderer; compare pixels in shared crops. Patterned 513x387 texture, full / partial / lower-edge / negative-origin regions.",
+    "cases": 48,
+    "maxChannelError": 1,
+    "maxMeanAbsoluteError": 0.00015819209039548022,
+    "results": [
+      {
+        "dpr": 1,
+        "radius": 0,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 513,
+          "height": 387
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 0,
+        "area": {
+          "x": 87,
+          "y": 69,
+          "width": 259,
+          "height": 181
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 0,
+        "area": {
+          "x": 100,
+          "y": 210,
+          "width": 250,
+          "height": 177
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 0,
+        "area": {
+          "x": -30,
+          "y": -20,
+          "width": 200,
+          "height": 150
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 1,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 513,
+          "height": 387
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 1,
+        "area": {
+          "x": 87,
+          "y": 69,
+          "width": 259,
+          "height": 181
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 1,
+        "area": {
+          "x": 100,
+          "y": 210,
+          "width": 250,
+          "height": 177
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 1,
+        "area": {
+          "x": -30,
+          "y": -20,
+          "width": 200,
+          "height": 150
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 4,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 513,
+          "height": 387
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 4,
+        "area": {
+          "x": 87,
+          "y": 69,
+          "width": 259,
+          "height": 181
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 4,
+        "area": {
+          "x": 100,
+          "y": 210,
+          "width": 250,
+          "height": 177
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 4,
+        "area": {
+          "x": -30,
+          "y": -20,
+          "width": 200,
+          "height": 150
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 12,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 513,
+          "height": 387
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 12,
+        "area": {
+          "x": 87,
+          "y": 69,
+          "width": 259,
+          "height": 181
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 12,
+        "area": {
+          "x": 100,
+          "y": 210,
+          "width": 250,
+          "height": 177
+        },
+        "max": 1,
+        "mae": 0.00015819209039548022
+      },
+      {
+        "dpr": 1,
+        "radius": 12,
+        "area": {
+          "x": -30,
+          "y": -20,
+          "width": 200,
+          "height": 150
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 28,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 513,
+          "height": 387
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 28,
+        "area": {
+          "x": 87,
+          "y": 69,
+          "width": 259,
+          "height": 181
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 28,
+        "area": {
+          "x": 100,
+          "y": 210,
+          "width": 250,
+          "height": 177
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 28,
+        "area": {
+          "x": -30,
+          "y": -20,
+          "width": 200,
+          "height": 150
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 48,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 513,
+          "height": 387
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 48,
+        "area": {
+          "x": 87,
+          "y": 69,
+          "width": 259,
+          "height": 181
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 48,
+        "area": {
+          "x": 100,
+          "y": 210,
+          "width": 250,
+          "height": 177
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 1,
+        "radius": 48,
+        "area": {
+          "x": -30,
+          "y": -20,
+          "width": 200,
+          "height": 150
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 0,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 513,
+          "height": 387
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 0,
+        "area": {
+          "x": 87,
+          "y": 69,
+          "width": 259,
+          "height": 181
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 0,
+        "area": {
+          "x": 100,
+          "y": 210,
+          "width": 250,
+          "height": 177
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 0,
+        "area": {
+          "x": -30,
+          "y": -20,
+          "width": 200,
+          "height": 150
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 1,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 513,
+          "height": 387
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 1,
+        "area": {
+          "x": 87,
+          "y": 69,
+          "width": 259,
+          "height": 181
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 1,
+        "area": {
+          "x": 100,
+          "y": 210,
+          "width": 250,
+          "height": 177
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 1,
+        "area": {
+          "x": -30,
+          "y": -20,
+          "width": 200,
+          "height": 150
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 4,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 513,
+          "height": 387
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 4,
+        "area": {
+          "x": 87,
+          "y": 69,
+          "width": 259,
+          "height": 181
+        },
+        "max": 1,
+        "mae": 4.9773530436513865e-5
+      },
+      {
+        "dpr": 2,
+        "radius": 4,
+        "area": {
+          "x": 100,
+          "y": 210,
+          "width": 250,
+          "height": 177
+        },
+        "max": 1,
+        "mae": 6.0263653483992466e-5
+      },
+      {
+        "dpr": 2,
+        "radius": 4,
+        "area": {
+          "x": -30,
+          "y": -20,
+          "width": 200,
+          "height": 150
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 12,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 513,
+          "height": 387
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 12,
+        "area": {
+          "x": 87,
+          "y": 69,
+          "width": 259,
+          "height": 181
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 12,
+        "area": {
+          "x": 100,
+          "y": 210,
+          "width": 250,
+          "height": 177
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 12,
+        "area": {
+          "x": -30,
+          "y": -20,
+          "width": 200,
+          "height": 150
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 28,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 513,
+          "height": 387
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 28,
+        "area": {
+          "x": 87,
+          "y": 69,
+          "width": 259,
+          "height": 181
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 28,
+        "area": {
+          "x": 100,
+          "y": 210,
+          "width": 250,
+          "height": 177
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 28,
+        "area": {
+          "x": -30,
+          "y": -20,
+          "width": 200,
+          "height": 150
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 48,
+        "area": {
+          "x": 0,
+          "y": 0,
+          "width": 513,
+          "height": 387
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 48,
+        "area": {
+          "x": 87,
+          "y": 69,
+          "width": 259,
+          "height": 181
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 48,
+        "area": {
+          "x": 100,
+          "y": 210,
+          "width": 250,
+          "height": 177
+        },
+        "max": 0,
+        "mae": 0
+      },
+      {
+        "dpr": 2,
+        "radius": 48,
+        "area": {
+          "x": -30,
+          "y": -20,
+          "width": 200,
+          "height": 150
+        },
+        "max": 0,
+        "mae": 0
+      }
+    ]
+  },
+  "dashboard": {
+    "errors": [],
+    "responsiveWidthCssPx": 390,
+    "alignment": "Overlay rectangles match card rectangles, all visible cards share equal texture identities.",
+    "states": {
+      "native": {
+        "backend": "html-in-canvas",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 6,
+        "scrollY": 0,
+        "scrollWidth": 1440,
+        "viewport": 1440,
+        "visible": [
+          "performance",
+          "overview",
+          "focus",
+          "tasks",
+          "schedule",
+          "progress"
+        ],
+        "uploads": 0,
+        "draws": 23
+      },
+      "rito": {
+        "backend": "rito",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 3,
+        "scrollY": 0,
+        "scrollWidth": 1440,
+        "viewport": 1440,
+        "visible": ["performance", "overview", "focus"],
+        "uploads": 2,
+        "draws": 36
+      },
+      "large": {
+        "backend": "rito",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 3,
+        "scrollY": 0,
+        "scrollWidth": 1440,
+        "viewport": 1440,
+        "visible": ["performance", "overview", "focus"],
+        "uploads": 2,
+        "draws": 45
+      },
+      "off": {
+        "backend": "rito",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 3,
+        "scrollY": 0,
+        "scrollWidth": 1440,
+        "viewport": 1440,
+        "visible": ["performance", "overview", "focus"],
+        "uploads": 2,
+        "draws": 50
+      },
+      "scrolled": {
+        "backend": "rito",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 7,
+        "scrollY": 1056,
+        "scrollWidth": 1440,
+        "viewport": 1440,
+        "visible": [
+          "tasks",
+          "schedule",
+          "progress",
+          "projects",
+          "daily-image",
+          "notes",
+          "activity"
+        ],
+        "uploads": 2,
+        "draws": 1429
+      },
+      "mobile": {
+        "backend": "rito",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 2,
+        "scrollY": 0,
+        "scrollWidth": 390,
+        "viewport": 390,
+        "visible": ["performance", "overview"],
+        "uploads": 4,
+        "draws": 1474
+      },
+      "mobileScroll": {
+        "backend": "rito",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 3,
+        "scrollY": 1062,
+        "scrollWidth": 390,
+        "viewport": 390,
+        "visible": ["focus", "tasks", "schedule"],
+        "uploads": 4,
+        "draws": 1482
+      },
+      "css": {
+        "backend": "css",
+        "canvas": 0,
+        "wallpaper": "/images/blur-comparison.jpg",
+        "fallback": true
+      }
+    }
+  },
+  "limits": [
+    "GPU utilization percentage and compositor/raster work are not measured by WebGL counters.",
+    "Multiple Overlay nodes still require ordinary presentation draws; this is not the previous single-overlay outer-clip page experiment.",
+    "Full-result sharing applies to uniform blur; gradient/mask pipelines reuse the source but retain their own radius-field processing.",
+    "Idle cache budget is estimated and does not hard-limit active profiles or total browser GPU memory."
+  ]
+}

@@ -12,6 +12,7 @@ import type { GradientBlurProfile } from "../types";
 const UNIFORM_NAMES = [
   "atlas",
   "atlasSize",
+  "sampleRegion",
   "direction",
   "bandCount",
   "bandEnds",
@@ -42,6 +43,7 @@ export class GradientBlurRenderer {
   private viewSize = { width: 1, height: 1 };
   private filtered: GaussianResult | null = null;
   private filteredProfile = "";
+  private sampleRegion: TextureCrop = { x: 0, y: 0, width: 1, height: 1 };
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
@@ -93,11 +95,13 @@ export class GradientBlurRenderer {
     atlas: AtlasLayout,
     profile: GradientBlurProfile,
     viewSize: { width: number; height: number },
+    sampleRegion?: TextureCrop,
   ): void {
     this.gl.disable(this.gl.BLEND);
     this.atlasTexture.copyFrom(source, crop, atlas, profile.direction);
     this.atlas = atlas;
     this.viewSize = viewSize;
+    this.sampleRegion = sampleRegion ?? { x: 0, y: 0, width: 1, height: 1 };
     this.filtered = null;
     atlas.bands.forEach((band, index) => {
       this.bandEnds[index] = band.coreEnd;
@@ -107,11 +111,15 @@ export class GradientBlurRenderer {
     });
   }
 
-  render(profile: BlurRenderProfile, viewport?: TextureCrop): void {
+  render(
+    profile: BlurRenderProfile,
+    viewport?: TextureCrop,
+    sampleRegion = this.sampleRegion,
+  ): void {
     if (!this.atlas) return;
     const gl = this.gl,
       u = this.uniforms;
-    const key = `${profile.direction}:${profile.maxRadius}:${Boolean(profile.uniformRadius)}:${profile.algorithm ?? "compact9"}:${JSON.stringify(profile.blurCurve ?? null)}`;
+    const key = `${profile.direction}:${profile.maxRadius}:${Boolean(profile.uniformRadius)}:${Boolean(profile.materialize)}:${profile.algorithm ?? "compact9"}:${JSON.stringify(profile.blurCurve ?? null)}`;
     gl.disable(gl.BLEND);
     if (!this.filtered || key !== this.filteredProfile) {
       this.filtered = this.gaussian.apply(
@@ -135,6 +143,14 @@ export class GradientBlurRenderer {
     gl.bindTexture(gl.TEXTURE_2D, this.filtered.texture);
     gl.uniform1i(u.atlas, 0);
     gl.uniform2f(u.atlasSize, this.atlas.width, this.atlas.height);
+    const region = sampleRegion;
+    gl.uniform4f(
+      u.sampleRegion,
+      region.x,
+      region.y,
+      region.width,
+      region.height,
+    );
     gl.uniform1f(u.direction, profile.direction === "top" ? 0 : 1);
     gl.uniform1i(u.bandCount, this.atlas.bands.length);
     gl.uniform1fv(u.bandEnds, this.bandEnds);

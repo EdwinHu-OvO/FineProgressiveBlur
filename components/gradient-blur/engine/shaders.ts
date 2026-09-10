@@ -20,6 +20,7 @@ export const FRAGMENT_SHADER = `#version 300 es
 precision highp float;
 uniform sampler2D uAtlas;
 uniform vec2 uAtlasSize;
+uniform vec4 uSampleRegion;
 uniform float uDirection;
 uniform int uBandCount;
 uniform float uBandEnds[${MAX_ATLAS_BANDS}];
@@ -33,12 +34,12 @@ uniform float uOffsets[${GAUSSIAN_PAIRS}];
 in vec2 vUv;
 out vec4 outputColor;
 
-vec4 sampleBand(int index, float progress) {
+vec4 sampleBand(int index, float progress, float x) {
   vec4 rect = uBandRects[index];
   vec2 range = uBandRanges[index];
   float localY = clamp((progress - range.x) / max(range.y - range.x, 0.0001), 0.0, 1.0);
   localY = mix(localY, 1.0 - localY, uDirection);
-  vec2 pixel = rect.xy + vec2(vUv.x, localY) * rect.zw;
+  vec2 pixel = rect.xy + vec2(x, localY) * rect.zw;
   vec2 uv = clamp(pixel, rect.xy + 0.5, rect.xy + rect.zw - 0.5) / uAtlasSize;
   vec4 color = texture(uAtlas, uv);
   if (uBlurY) {
@@ -54,16 +55,17 @@ vec4 sampleBand(int index, float progress) {
   return color;
 }
 void main() {
-  float progress = mix(vUv.y, 1.0 - vUv.y, uDirection);
+  vec2 sourceUv = uSampleRegion.xy + vUv * uSampleRegion.zw;
+  float progress = mix(sourceUv.y, 1.0 - sourceUv.y, uDirection);
   vec4 color = vec4(0.0);
   for (int index = 0; index < ${MAX_ATLAS_BANDS}; index++) {
     float start = uBandEnds[index];
     float end = uBandBlendEnds[index];
     if (index == uBandCount - 1 || progress < end) {
-      color = sampleBand(index, progress);
+      color = sampleBand(index, progress, sourceUv.x);
       if (index < uBandCount - 1 && progress > start) {
         float blend = smoothstep(start, end, progress);
-        color = mix(color, sampleBand(index + 1, progress), blend);
+        color = mix(color, sampleBand(index + 1, progress, sourceUv.x), blend);
       }
       break;
     }

@@ -55,6 +55,7 @@ export const GradientBlurProvider = forwardRef<
 >(function GradientBlurProvider(
   {
     captureBackend = "auto",
+    sourceMode = "live",
     algorithm = "compact9",
     blurCurve,
     children,
@@ -82,6 +83,7 @@ export const GradientBlurProvider = forwardRef<
     enabled: enableNative,
     resolveSource,
     maxPixelRatio: Math.min(3, Math.max(1, maxDevicePixelRatio)),
+    sourceMode,
     refreshKey: `${captureBackend}:${refreshVersion}`,
   });
   const nativeSurface = enableNative ? native.surface : null;
@@ -96,6 +98,7 @@ export const GradientBlurProvider = forwardRef<
     enabled: enableRito,
     resolveSource,
     maxPixelRatio: Math.min(3, Math.max(1, maxDevicePixelRatio)),
+    sourceMode,
     refreshKey: `${captureBackend}:${refreshVersion}`,
   });
   const ritoSurface = enableRito ? rito.surface : null;
@@ -137,6 +140,7 @@ export const GradientBlurProvider = forwardRef<
         data-gradient-blur-provider=""
         data-requested-backend={captureBackend}
         data-capture-backend={activeBackend}
+        data-source-mode={sourceMode}
         style={{
           ...style,
           isolation: "isolate",

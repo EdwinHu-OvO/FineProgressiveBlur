@@ -1,0 +1,256 @@
+{
+  "date": "2026-09-10",
+  "environment": {
+    "browser": "Chromium 153.0.8010.12",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "mode": "Next.js development, headless browser",
+    "viewport": {
+      "width": 1440,
+      "height": 1000,
+      "dpr": 2
+    },
+    "radiusCssPx": 48,
+    "flags": [
+      "--use-angle=metal",
+      "--enable-blink-features=CanvasDrawElement",
+      "--enable-experimental-web-platform-features"
+    ]
+  },
+  "method": {
+    "warmupMs": 1200,
+    "scrollDurationMs": 3000,
+    "settleMs": 500,
+    "scroll": "window.scrollTo(0, elapsedMs * 0.35) once per requestAnimationFrame; about 1056 CSS px",
+    "draws": "WebGL2 drawArrays calls across scene, encoding, reduction, Gaussian and output passes",
+    "blits": "WebGL2 blitFramebuffer calls",
+    "allocations": "texImage2D / texStorage2D calls (storage requests, not driver physical allocation measurements)",
+    "sourceUploads": "texImage2D / texSubImage2D receiving HTMLCanvasElement or ImageBitmap",
+    "nativeUploads": "texElementImage2D calls; preserve function arity to keep native capability detection intact"
+  },
+  "limits": [
+    "Counters cover page WebGL work, not browser compositor/raster GPU work or system GPU utilization.",
+    "Short warmed development run on one machine; FPS is not a GPU-cost measurement.",
+    "Shared-result reuse requires the same fixed source and blur profile; changes still render."
+  ],
+  "comparison": [
+    {
+      "backend": "rito",
+      "before": {
+        "scrollY": 1056,
+        "frames": 181,
+        "meanMs": 16.665723756906075,
+        "p95Ms": 16.800000000000182,
+        "duringScroll": {
+          "draws": 9369,
+          "blits": 2904,
+          "allocations": 5833,
+          "sourceUploads": 0,
+          "nativeUploads": 0
+        },
+        "includingSettled": {
+          "draws": 9469,
+          "blits": 2936,
+          "allocations": 5887,
+          "sourceUploads": 0,
+          "nativeUploads": 0
+        },
+        "errors": []
+      },
+      "after": {
+        "scrollY": 1056,
+        "frames": 181,
+        "meanMs": 16.666011049723757,
+        "p95Ms": 16.700000000000728,
+        "duringScroll": {
+          "draws": 0,
+          "blits": 0,
+          "allocations": 0,
+          "sourceUploads": 0,
+          "nativeUploads": 0
+        },
+        "includingSettled": {
+          "draws": 0,
+          "blits": 0,
+          "allocations": 0,
+          "sourceUploads": 0,
+          "nativeUploads": 0
+        },
+        "errors": []
+      }
+    },
+    {
+      "backend": "html-in-canvas",
+      "before": {
+        "scrollY": 1056,
+        "frames": 181,
+        "meanMs": 16.666364640883977,
+        "p95Ms": 16.800000000000182,
+        "duringScroll": {
+          "draws": 9442,
+          "blits": 2943,
+          "allocations": 5855,
+          "sourceUploads": 0,
+          "nativeUploads": 4
+        },
+        "includingSettled": {
+          "draws": 9542,
+          "blits": 2975,
+          "allocations": 5909,
+          "sourceUploads": 0,
+          "nativeUploads": 4
+        },
+        "errors": []
+      },
+      "after": {
+        "scrollY": 1056,
+        "frames": 181,
+        "meanMs": 16.665458563535914,
+        "p95Ms": 16.700000000000728,
+        "duringScroll": {
+          "draws": 0,
+          "blits": 0,
+          "allocations": 0,
+          "sourceUploads": 0,
+          "nativeUploads": 0
+        },
+        "includingSettled": {
+          "draws": 0,
+          "blits": 0,
+          "allocations": 0,
+          "sourceUploads": 0,
+          "nativeUploads": 0
+        },
+        "errors": []
+      }
+    }
+  ],
+  "validation": {
+    "lint": "passed",
+    "typecheck": "passed",
+    "testFiles": 18,
+    "tests": 77,
+    "browserErrors": [],
+    "interactions": [
+      "timer start/pause/reset",
+      "task completion updates progress",
+      "project filter",
+      "native textarea"
+    ],
+    "sharedClip": "visible card centers included, outer page excluded, overlay fixed to full viewport",
+    "largeRadius": {
+      "radius": 96,
+      "scale": "1/64",
+      "atlasBlocks": 1,
+      "atlasDisplay": "6.2 KiB",
+      "sourceDisplay": "21.97 MiB"
+    },
+    "zeroRadiusScale": "1x",
+    "cssFallback": {
+      "backend": "css",
+      "canvas": 0,
+      "wallpaper": "/images/blur-comparison.jpg",
+      "fallback": true
+    },
+    "pageStates": {
+      "native": {
+        "backend": "html-in-canvas",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 1,
+        "scrollY": 0,
+        "scrollWidth": 1440,
+        "viewport": 1440,
+        "visible": [
+          "performance",
+          "overview",
+          "focus",
+          "tasks",
+          "schedule",
+          "progress"
+        ],
+        "uploads": 0,
+        "draws": 19
+      },
+      "rito": {
+        "backend": "rito",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 1,
+        "scrollY": 0,
+        "scrollWidth": 1440,
+        "viewport": 1440,
+        "visible": ["performance", "overview", "focus"],
+        "uploads": 2,
+        "draws": 38
+      },
+      "large": {
+        "backend": "rito",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 1,
+        "scrollY": 0,
+        "scrollWidth": 1440,
+        "viewport": 1440,
+        "visible": ["performance", "overview", "focus"],
+        "uploads": 2,
+        "draws": 45
+      },
+      "off": {
+        "backend": "rito",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 1,
+        "scrollY": 0,
+        "scrollWidth": 1440,
+        "viewport": 1440,
+        "visible": ["performance", "overview", "focus"],
+        "uploads": 2,
+        "draws": 48
+      },
+      "scrolled": {
+        "backend": "rito",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 1,
+        "scrollY": 1056,
+        "scrollWidth": 1440,
+        "viewport": 1440,
+        "visible": [
+          "tasks",
+          "schedule",
+          "progress",
+          "projects",
+          "daily-image",
+          "notes",
+          "activity"
+        ],
+        "uploads": 2,
+        "draws": 61
+      },
+      "mobile": {
+        "backend": "rito",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 1,
+        "scrollY": 0,
+        "scrollWidth": 390,
+        "viewport": 390,
+        "visible": ["performance", "overview"],
+        "uploads": 4,
+        "draws": 77
+      },
+      "mobileScroll": {
+        "backend": "rito",
+        "canvas": 1,
+        "provider": 1,
+        "overlays": 1,
+        "scrollY": 1062,
+        "scrollWidth": 390,
+        "viewport": 390,
+        "visible": ["focus", "tasks", "schedule"],
+        "uploads": 4,
+        "draws": 77
+      }
+    }
+  }
+}

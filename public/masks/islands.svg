@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" preserveAspectRatio="none">
+  <defs>
+    <radialGradient id="island">
+      <stop offset="0.25" stop-color="white"/>
+      <stop offset="1" stop-color="black" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="black"/>
+  <ellipse cx="150" cy="165" rx="160" ry="190" fill="url(#island)"/>
+  <ellipse cx="390" cy="375" rx="170" ry="130" fill="url(#island)"/>
+</svg>

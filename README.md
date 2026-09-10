@@ -1,12 +1,13 @@
 # Fine Progressive Blur
 
-面向滚动内容边缘的 React / Next.js 渐变模糊组件，让顶部和底部从清晰正文平滑过渡到模糊，同时保留原生滚动、交互与无障碍语义。
+支持全模糊、滚动内容边缘渐变和任意二维蒙版的 React / Next.js 模糊组件，同时保留原生滚动、交互与无障碍语义。
 目前仍在持续开发中。
 
 - **细腻的渐变效果**：WebGL2 高斯模糊半径连续变化，支持自定义贝塞尔衰减曲线，可独立调整上下边缘的高度与强度。
 - **针对滚动优化**：共享正文纹理，按模糊半径分级降采样并复用卷积结果；Rito 缓存内的普通滚动只更新 GPU 取样窗口，减少重复绘制与上传。
 - **渐进增强与保底**：首屏即可显示 CSS 模糊，WebGL 就绪后接管；自动选择 HTML-in-Canvas 或 Rito 后端，不支持 WebGL2 或渲染失败时恢复配置的保底效果。
 - **接入与更新可控**：通过 Provider 与 Overlay 组合使用，覆盖层不占布局、不拦截指针事件；支持实时、滚动结束和静态更新策略，以及手动刷新。
+- **任意蒙版模糊**：Overlay 可接收图片/SVG、Canvas 或 ImageData 蒙版，按二维子区域生成不同采样率的纹理块，连续控制局部模糊强度。
 
 ## 开发
 
@@ -21,33 +22,39 @@ pnpm dev
 
 ```tsx
 import {
-    GradientBlurOverlay,
-    GradientBlurProvider,
+  GradientBlurOverlay,
+  GradientBlurProvider,
 } from "@/components/gradient-blur";
 
 export function ScrollSurface() {
-    return (
-        <GradientBlurProvider captureBackend="auto">
-            <GradientBlurOverlay
-                direction="top"
-                height={100}
-                maxRadius={24}
-                blurCurve={{ x1: 0.25, y1: 0.1, x2: 0.25, y2: 1 }}
-            />
-            <div className="scroll-container" data-gradient-blur-source>
-                {/* 原生滚动内容 */}
-            </div>
-            <GradientBlurOverlay
-                direction="bottom"
-                height={100}
-                maxRadius={24}
-            />
-        </GradientBlurProvider>
-    );
+  return (
+    <GradientBlurProvider captureBackend="auto">
+      <GradientBlurOverlay
+        direction="top"
+        height={100}
+        maxRadius={24}
+        blurCurve={{ x1: 0.25, y1: 0.1, x2: 0.25, y2: 1 }}
+      />
+      <div className="scroll-container" data-gradient-blur-source>
+        {/* 原生滚动内容 */}
+      </div>
+      <GradientBlurOverlay direction="bottom" height={100} maxRadius={24} />
+    </GradientBlurProvider>
+  );
 }
 ```
 
 Provider 需要稳定、可计算的尺寸。采集源优先使用 `sourceRef`，其次寻找直接子元素 `[data-gradient-blur-source]`，最后使用第一个非 Overlay 子元素。Overlay 绝对定位，不参与布局，默认穿透指针事件。
+
+Overlay 根据两个可选属性选择管线，`direction` 与 `mask` 互斥；TypeScript 和运行时均拒绝同时传入：
+
+```tsx
+<GradientBlurOverlay maxRadius={24} />                       // 默认：全模糊
+<GradientBlurOverlay direction="top" maxRadius={24} />       // 方向渐变
+<GradientBlurOverlay mask="/masks/focus.svg" maxRadius={24} /> // 蒙版变模糊
+```
+
+全模糊只按半径与 DPR 选择降采样率，使用单块纹理和固定半径卷积。全模糊与蒙版模式默认覆盖整个容器，方向渐变默认覆盖对应边缘的 100px。
 
 `blurCurve` 使用 CSS `cubic-bezier(x1, y1, x2, y2)` 的四个控制点，输入位置是从模糊外缘到正文接缝的归一化进度。曲线输出 0 代表保持 `maxRadius`，输出 1 代表半径降为 0；未传入时使用内置 smootherstep 曲线。`x1`、`x2` 会限制在 0–1，`y1`、`y2` 允许 CSS 式过冲。
 
@@ -57,22 +64,41 @@ Provider 需要稳定、可计算的尺寸。采集源优先使用 `sourceRef`�
 | --------------------- | -------------------------------------- | -------- | ------------------------------------------------------- |
 | `sourceRef`           | `RefObject<HTMLElement \| null>`       | —        | Provider 内的正文容器                                   |
 | `captureBackend`      | `"auto" \| "html-in-canvas" \| "rito"` | `"auto"` | 首选渲染路径                                            |
+| `sourceMode`          | `"live" \| "static"`                   | `"live"` | 背景自动更新，或缓存静态采集源并共享全模糊结果          |
 | `onBackendChange`     | `(backend) => void`                    | —        | `css`、`html-in-canvas`、`rito`；纹理后端就绪后报告切换 |
 | `maxDevicePixelRatio` | `number`                               | `2`      | 最大纹理 DPR，限制在 1–3                                |
 | `fallback`            | `"css" \| "transparent"`               | `"css"`  | 首屏及 WebGL 帧未就绪时的基础效果                       |
 
 通过 ref 调用 `refresh()` 可以标记现有后端的内容，刷新命令式 Canvas/CSSOM 变化；后端尚未建立时会重试初始化。正文节点与滚动位置保留。
 
+固定背景使用 `sourceMode="static"`：同半径的全模糊 Overlay 共享完整背景的预模糊纹理，移动时只裁切合成。图片的 `onLoad` 或已有的背景更新回调里调用 `ref.refresh()` 通知更新。这个 Provider 选项与 Overlay 的 `captureStrategy` 独立，详见 [静态背景 API](docs/static-source.md)。
+
 ### Overlay
 
-| 属性              | 类型                                | 默认值   | 说明                                               |
-| ----------------- | ----------------------------------- | -------- | -------------------------------------------------- |
-| `direction`       | `"top" \| "bottom"`                 | 必填     | 覆盖的边缘                                         |
-| `height`          | `number \| string`                  | `100`    | 覆盖高度                                           |
-| `maxRadius`       | `number`                            | `24`     | 外侧最大高斯标准差，单位 CSS px                    |
-| `blurCurve`       | `{ x1, y1, x2, y2 }`                | —        | 可选 CSS `cubic-bezier()` 控制点，改变半径衰减曲线 |
-| `captureStrategy` | `"static" \| "scrollend" \| "live"` | `"live"` | 纹理更新时机                                       |
-| `onMetrics`       | `(metrics) => void`                 | —        | 图集、上传与渲染指标                               |
+| 属性              | 类型                                | 默认值   | 说明                                                          |
+| ----------------- | ----------------------------------- | -------- | ------------------------------------------------------------- |
+| `direction`       | `"top" \| "bottom"`                 | —        | 启用对应方向的渐变模糊，与 `mask` 互斥                        |
+| `height`          | `number \| string`                  | 见上文   | 覆盖高度，也可通过 `style` 设置                               |
+| `maxRadius`       | `number`                            | `24`     | 高斯标准差，单位 CSS px；全模糊为固定值，其余为最大值         |
+| `blurCurve`       | `{ x1, y1, x2, y2 }`                | —        | 仅方向渐变使用的 CSS `cubic-bezier()` 半径衰减曲线            |
+| `captureStrategy` | `"static" \| "scrollend" \| "live"` | `"live"` | 纹理更新时机                                                  |
+| `mask`            | `string \| BlurMaskOptions`         | —        | 启用二维强度蒙版，与 `direction` 互斥；黑色清晰，白色最大半径 |
+| `onMetrics`       | `(metrics) => void`                 | —        | 图集、上传与渲染指标                                          |
+
+### Variable blur
+
+```tsx
+<GradientBlurProvider>
+  <GradientBlurOverlay maxRadius={24} mask="/masks/focus.svg" />
+  <div data-gradient-blur-source className="scroll-container">
+    {/* 原生内容 */}
+  </div>
+</GradientBlurProvider>
+```
+
+也可使用 `mask={{ source: canvas, channel: "alpha", invert: false, revision }}`。`source` 接受图片地址、HTMLImageElement、Canvas、OffscreenCanvas、ImageBitmap 和 ImageData；原地修改像素后递增 `revision`。蒙版固定以左上角为原点并拉伸到覆盖区域，需要底部局部覆盖时设置 `height={180} style={{ bottom: 0 }}`。`blurCurve` 在全模糊和蒙版模式下不参与计算；移除 `mask` 后回到全模糊。
+
+蒙版按保守强度范围分块，保留双线性采样和 3σ 邻域，再复用现有共享金字塔和 compact9 固定半径卷积。各像素在相邻半径结果间按方差连续插值，避免二维变半径分离卷积的方向性拖影。分块结果缓存，滚动时不扫描蒙版；CSS 保底是蒙版覆盖的固定半径近似。输入、限制和管线细节见 [Variable Blur](docs/variable-blur.md)。首页新增蒙版上传演示。
 
 ## 后端策略
 
@@ -91,7 +117,7 @@ SnapDOM、快照采集器与公开的 `captureAdapter` / Canvas adapter 接口�
 
 ### CSS 保底
 
-使用 Layered Backdrop-Filter Stack，每个边缘最多 8 层不可点击的绝对定位元素，半径从 `Rmax / 128` 逐层翻倍到 `Rmax`。每层拥有重叠的 `mask-image`，顶部与底部互为镜像。零半径不创建滤镜层；不为容器增加整体 mask 或透明度动画。
+全模糊使用一层固定半径 `backdrop-filter`；蒙版使用一层带蒙版的固定半径近似。方向渐变使用 Layered Backdrop-Filter Stack，每个边缘最多 8 层不可点击的绝对定位元素，半径从 `Rmax / 128` 逐层翻倍到 `Rmax`。每层拥有重叠的 `mask-image`，顶部与底部互为镜像。零半径不创建滤镜层；不为容器增加整体 mask 或透明度动画。
 
 ## 内容更新
 
@@ -106,7 +132,7 @@ SnapDOM、快照采集器与公开的 `captureAdapter` / Canvas adapter 接口�
 
 ## 模糊管线
 
-1. Provider 共用一个 WebGL2 场景与正文纹理，边缘从 GPU 场景裁剪，不向 CPU 读回。
+1. Provider 共用一个 WebGL2 场景与正文纹理，覆盖层从 GPU 场景裁剪，不向 CPU 读回。默认全模糊生成一个按半径降采样的图集块，执行固定半径卷积；蒙版按二维强度规划采集块。以下分带和过渡规则用于方向渐变。
 2. 按局部标准差与 DPR 将边缘拆成最多 8 个 Atlas band，分辨率从 1× 到 1/128×。保留混合区及 3σ 邻域，裁切对齐真实的降采样纹素，避免拉伸；零半径保持原始分辨率。
 3. 将 sRGB 场景转换为编码 sRGB、预乘 Alpha 的 RGBA8 缓冲，再逐级降采样。奇数尺寸按源像素覆盖面积滤波，减少细线混叠。各 band 共享降采样结果。
 4. 渐变模式先纵向、再横向高斯卷积，使每一行的两个方向使用相同 σ，避免纵向拉丝。合并相邻权重后每轴最多 9 次双线性采样，扣除重采样引入的近似方差。固定半径在 CPU 预计算权重；原始分辨率时将纵向卷积合入最终输出。
@@ -116,13 +142,17 @@ SnapDOM、快照采集器与公开的 `captureAdapter` / Canvas adapter 接口�
 
 `maxRadius` 与 [CSS blur()](https://www.w3.org/TR/filter-effects-1/#funcdef-filter-blur) 同样表示高斯标准差。无随机采样噪点，使用 sRGB 混合以接近 CSS；降采样与浏览器实现仍会带来偏差。见 [CSS 模糊校准](docs/css-blur-alignment.md) 与 [Apple 模糊调研](docs/apple-blur-research.md)。
 
-`onMetrics` 的 `savedRatio` 只比较边缘图集和原始条带，不代表总显存或上传节省。总资源另含正文、降采样与高斯中间缓冲，Rito 的内容块估算预算为 64 MiB。计时是 JS 提交耗时，不是 GPU 完成时间。Canvas 2D 的首次与变更上传仍然存在，不承诺浏览器内部零拷贝。
+`onMetrics.mode` 区分 `uniform` / `gradient` / `mask`，只有方向渐变带有 `direction`。`savedRatio` 只比较图集和原始覆盖区域，不代表总显存或上传节省。总资源另含正文、降采样与高斯中间缓冲，Rito 的内容块估算预算为 64 MiB。计时是 JS 提交耗时，不是 GPU 完成时间。Canvas 2D 的首次与变更上传仍然存在，不承诺浏览器内部零拷贝。
 
 ## 图片模糊对照
 
 演示页 `#image-blur-comparison` 使用同一张本地照片、裁切与边缘延展，并排比较组件算法与普通 CSS `filter: blur()`。固定半径 0–48px，没有渐变或空间分区；「查看原图」同步归零。
 
 半径变化复用源纹理，跨降采样档位只在 GPU 重建图集；图片加载、尺寸/DPR 变化和上下文恢复时才重新上传图片。WebGL2 不可用时左侧明确显示不可用，右侧 CSS 参考图仍可查看。见 [图片署名](public/images/ATTRIBUTION.md)。
+
+## 大面积模糊 Dashboard
+
+打开 `/massiveblur` 查看必应每日一图背景上的可滚动玻璃卡片工作区。页面使用 `sourceMode="static"` 的 Provider，每张可见卡片有独立 Overlay，由组件内部共享模糊结果，滚动只裁切合成。提供 0–96px 半径、后端与 DPR 切换，以及滚动帧率、采样率和图集指标。待办、计时器、项目筛选和随手记可交互，图片获取失败时显示本地预览。结构与测量口径见 [Dashboard 说明](docs/massive-blur.md)。
 
 ## GPU 基准
 

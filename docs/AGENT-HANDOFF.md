@@ -1,5 +1,33 @@
 # Fine Progressive Blur：Agent 交接记录
 
+## 2026-09-10：Provider 静态源与共享全模糊纹理
+
+Provider 新增 `sourceMode="live" | "static"`，默认 live。Static 冻结采集源，尺寸/DPR 与 `ref.refresh()` 更新；现有 DOM `onChange` 没有被重定义。同半径的默认全模糊 Overlay 在 Provider 内共享完整背景的降采样和两轴高斯结果，后续只裁切合成；direction/mask 仍走原有管线。`SurfaceOverlays` 统一生命周期，`requestOverlay(element)` 把局部几何变化与背景刷新分开，`StaticUniformCache` 负责结果和闲置历史预算。
+
+Massive Blur 已从下面的单 Overlay 页面实验改回每张可见卡片独立 Overlay，使用 Provider static，图片 onLoad 调用 refresh。3 秒滚动中约 1,451 次普通合成绘制，两个后端的新增高斯、编码、拷贝、分配和背景上传均为 0。两种后端刷新/冻结/不同半径/DPR/live 切换及 48 组像素对照通过，最大误差 1/255；19 文件 / 81 测试通过。API、边界与新验证记录见 [静态源](static-source.md)。以下记录保留为实现历史。
+
+## 2026-09-10：Massive Blur Dashboard
+
+`/massiveblur` 已接入必应每日一图与十张可交互卡片。一个 Provider 加一个固定的默认全模糊 Overlay 共享整张背景的模糊结果；滚动只改变 Provider 外部的圆角裁剪，前景 DOM 在采集层之外。初版逐卡片移动 Overlay 触发全体 resize 重采样，约 3 秒产生 9,400 次 GPU 绘制；共享结果后 Rito / HTML-in-Canvas 在同段滚动中均为 0 次新增 WebGL 绘制、拷贝和分配，保留半径、图片、尺寸变更的正常更新。不要恢复逐卡片位置更新；同一固定背景和同一半径可以共享已有结果。
+
+页面使用窗口滚动，提供半径、后端、DPR 和性能详情，滚动后有小型帧率浮窗。同源 Bing 图片接口仅接收受限 ID，失败保留明确标记的本地预览。说明和验证记录见 [Massive Blur](massive-blur.md)。没有为该页扩展组件的公开 API；lint / typecheck 与 18 文件 / 77 测试通过。
+
+## 2026-09-10：Overlay 三种互斥模式
+
+最新 API：`direction` 和 `mask` 均省略时默认全模糊；仅 `direction` 为原渐变管线；仅 `mask` 为二维蒙版管线。TypeScript 联合类型与运行时检查拒绝同时启用。全模糊不构造蒙版，通过单块图集按半径与 DPR 降采样，再运行固定半径卷积。全模糊和蒙版默认 `height="100%"`；渐变保持 100px。局部底部覆盖使用 `height` 加 `style={{ bottom: 0 }}`，`direction` 不再用于蒙版定位。`blurCurve` 只影响方向渐变。指标新增 `mode`，`direction` 为可选字段。
+
+非渐变模式共享 `overlay-capture` 的外部邻域采集。全模糊的最终 shader 通过 `sampleRegion` 将大采样区裁回覆盖区域；渐变和图片对照默认使用完整采样区。演示增加无蒙版选项。以下蒙版扩展记录中的旧验证数据保留作为初始实现记录。
+
+`observe-overlay-layout` 监听覆盖层的 style / class 几何变化，补足 ResizeObserver 对纯位置变化的遗漏；CSS 保底显示属性变化不会触发重采样。最终 lint / typecheck、17 文件 / 74 测试通过；96 组蒙版和 36 组全模糊 GPU 对照通过，两种后端、模式切换、底部定位和移动端 / CSS 保底均已验证。具体数据及软件 GPU 限制见 [三模式验证数据](benchmarks/overlay-modes-2026-09-10.json)。
+
+## 2026-09-10：蒙版扩展（初始实现）
+
+Overlay 新增 `mask`，保持 Provider / 原生内容 / Overlay 结构。无蒙版时原渐变管线不变；蒙版模式通过 `OverlayRenderer` 路由到 `mask/MaskBlurRenderer`，共享 `AtlasTexture` 和 `GaussianBlur`。二维块使用可选水平裁剪与固定 σ，蒙版 R8 纹理在最终合成阶段选择相邻高斯结果。蒙版区间分析与布局分开缓存，正文滚动不会重新切分。
+
+公开 API、设计选择、输入更新和限制见 [Variable Blur](variable-blur.md)。不要将任意二维蒙版直接接入原来的逐行 Y→X 半径 shader。不要将 masked CSS 保底描述成真正的 variable blur。新增纯算法测试覆盖透明度、反转、小孔洞、棋盘格、奇数尺寸/DPR 和邻域；首页有独立蒙版示例及本地上传。
+
+扩展后的验证：lint / typecheck、15 个文件 / 65 项测试通过，另有 96 组 GPU 对照及两种采集后端的浏览器集成检查。数值、测量限制和结果文件见上述文档；临时浏览器脚本在 `/tmp/fpb-mask-check`。蒙版区间分析约 1ms / 1024²，仅蒙版或尺寸变化时执行，未引入 Rust/WASM。
+
 更新时间：2026-09-09\
 当前分支：`main`  
 最近提交：

@@ -1,10 +1,12 @@
-import { toBandMetrics, type AtlasLayout } from "./atlas-layout";
+import type { AtlasBand, AtlasLayout } from "./atlas-layout";
 import {
   GRADIENT_BLUR_SAMPLE_COUNT,
   type CaptureReason,
   type CaptureStrategy,
   type GradientBlurDirection,
+  type GradientBlurMode,
   type GradientBlurMetrics,
+  type GradientBlurBandMetrics,
 } from "../types";
 
 interface ReadyMetricOptions {
@@ -13,7 +15,8 @@ interface ReadyMetricOptions {
   atlasBuildMs: number;
   captureCount: number;
   captureMs: number;
-  direction: GradientBlurDirection;
+  direction?: GradientBlurDirection;
+  mode: GradientBlurMode;
   liveCapture: "continuous" | "snapshot";
   pixelRatio: number;
   renderCount?: number;
@@ -33,6 +36,7 @@ export function createReadyMetrics({
   captureCount,
   captureMs,
   direction,
+  mode,
   liveCapture,
   pixelRatio,
   renderCount = 0,
@@ -48,6 +52,7 @@ export function createReadyMetrics({
   const sourcePixels = sourceWidth * sourceHeight;
   return {
     direction,
+    mode,
     strategy,
     phase: "ready",
     captureCount,
@@ -68,4 +73,30 @@ export function createReadyMetrics({
     reason,
     bands: toBandMetrics(atlas.bands),
   };
+}
+
+function toBandMetrics(bands: readonly AtlasBand[]): GradientBlurBandMetrics[] {
+  return bands.map(
+    ({
+      label,
+      scale,
+      width,
+      height,
+      coreStart,
+      coreEnd,
+      coreLeft,
+      coreRight,
+      sigma,
+    }) => ({
+      label,
+      scale,
+      atlasWidth: width,
+      atlasHeight: height,
+      coreStart,
+      coreEnd,
+      coreLeft,
+      coreRight,
+      sigma,
+    }),
+  );
 }

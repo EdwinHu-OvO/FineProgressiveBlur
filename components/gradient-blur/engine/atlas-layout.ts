@@ -1,4 +1,4 @@
-import type { GradientBlurBandMetrics, GradientBlurBezier } from "../types";
+import type { GradientBlurBezier } from "../types";
 import { blurRadiusAt } from "./profile";
 
 const GUTTER = 1;
@@ -8,9 +8,15 @@ export interface AtlasBand {
   scale: number;
   coreStart: number;
   coreEnd: number;
+  coreLeft?: number;
+  coreRight?: number;
   blendEnd: number;
   captureStart: number;
   captureEnd: number;
+  /** Optional horizontal crop and constant sigma for 2D mask patches. */
+  captureLeft?: number;
+  captureRight?: number;
+  sigma?: number;
   x: number;
   y: number;
   width: number;
@@ -177,19 +183,6 @@ export function createUniformAtlasLayout(
       },
     ],
   };
-}
-
-export function toBandMetrics(
-  bands: readonly AtlasBand[],
-): GradientBlurBandMetrics[] {
-  return bands.map(({ label, scale, width, height, coreStart, coreEnd }) => ({
-    label,
-    scale,
-    atlasWidth: width,
-    atlasHeight: height,
-    coreStart,
-    coreEnd,
-  }));
 }
 
 export const ATLAS_GUTTER = GUTTER;

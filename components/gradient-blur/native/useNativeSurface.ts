@@ -8,6 +8,7 @@ import {
 } from "react";
 import { supportsNativeCanvas } from "./html-in-canvas-api";
 import { NativeSurface } from "./native-surface";
+import type { GradientBlurSourceMode } from "../types";
 
 interface NativeSurfaceState {
   surface: NativeSurface | null;
@@ -39,6 +40,7 @@ interface SurfaceOptions {
   resolveSource(): HTMLElement | null;
   maxPixelRatio: number;
   refreshKey: string;
+  sourceMode: GradientBlurSourceMode;
 }
 
 export function useNativeSurface({
@@ -47,6 +49,7 @@ export function useNativeSurface({
   resolveSource,
   maxPixelRatio,
   refreshKey,
+  sourceMode,
 }: SurfaceOptions): NativeSurfaceState {
   const [store] = useState(() => new SurfaceStore());
   const state = useSyncExternalStore(
@@ -85,6 +88,7 @@ export function useNativeSurface({
         provider,
         resolveSource,
         maxPixelRatio,
+        sourceMode,
         onReady: (value) => store.set(value),
         onFailure: (error) => {
           provider.dataset.nativeCaptureError =
@@ -101,7 +105,15 @@ export function useNativeSurface({
       controller?.dispose();
       store.set(null, true);
     };
-  }, [enabled, providerRef, resolveSource, maxPixelRatio, refreshKey, store]);
+  }, [
+    enabled,
+    providerRef,
+    resolveSource,
+    maxPixelRatio,
+    refreshKey,
+    sourceMode,
+    store,
+  ]);
 
   return state;
 }
